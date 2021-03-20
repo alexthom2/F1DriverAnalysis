@@ -19,18 +19,14 @@ library(readxl)
 ```
 
 
+#### Data
 
 ```{r}
+
 
 setwd("~/Projects/F1/Data")
 
 
-
-```
-
-#### Data
-
-```{r}
 
 circuits <- read_csv("circuits.csv")
 
@@ -66,31 +62,20 @@ factor <- read_xlsx("facetor.xlsx")
 ````
 
 
-```{r}
-
-grid <- all_data %>% 
-                            group_by(raceId, date.x) %>%
-                              summarise(Gridtot = n()) %>%
-                                ungroup() %>%
-                                arrange(date.x) %>%
-                                  mutate(raceno = 1:n())
-
-
-ggplot(grid, aes(x = raceno, y = gridtot)) + geom_line()
-
-```
-
 
 ```{r}
 
 all_data <- results %>% left_join(races, by = "raceId") %>%
                             left_join(constructors, by = "constructorId") %>%
                                 left_join(drivers, by = "driverId") %>%
-                                      left_join(status, by = "statusId") %>%
-                                      left_join(grid, by = "raceId") %>%
-                                        left_join(factor, by = c("Gridtot", "grid")) 
+                                      left_join(status, by = "statusId") 
 
-all_data$position <- as.numeric(as.character(all_data$position))
+
+#%>%
+ ##                                     
+   #                                     left_join(factor, by = c("Gridtot", "grid")) 
+
+#all_data$position <- as.numeric(as.character(all_data$position))
 
 
 
@@ -99,11 +84,42 @@ all_data$position <- as.numeric(as.character(all_data$position))
 ```
 
 
+```{r}
+
+grid <- all_data %>% 
+                            group_by(raceId, date) %>%
+                              summarise(Gridtot = n()) %>%
+                                ungroup() %>%
+                                arrange(date) %>%
+                                  mutate(raceno = 1:n())
+
+
+ggplot(grid, aes(x = raceno, y = Gridtot)) + geom_line()
+
+```
+
+```{r}
+
+all_data2 <- results %>% left_join(races, by = "raceId") %>%
+                            left_join(constructors, by = "constructorId") %>%
+                                left_join(drivers, by = "driverId") %>%
+                                      left_join(status, by = "statusId") %>% 
+                                       left_join(grid, by = "raceId") %>%
+                                         left_join(factor, by = c("Gridtot", "grid")) 
+
+
+all_data2$position <- as.numeric(as.character(all_data2$position))
+
+
+```
+
+
+
 
 ```{r}
 
 
-retire <- all_data %>% mutate(ret = if_else(positionText == "R", 1, 0 )) %>%
+retire <- all_data2 %>% mutate(ret = if_else(positionText == "R", 1, 0 )) %>%
                             group_by(year) %>%
                               summarise(tot = n(), ret2 = sum(ret, na.rm = T)) %>%
                                 mutate(per = ret2/tot)
@@ -122,8 +138,8 @@ ggplot(retire, aes(x = year, y = per)) + geom_col()
 ```{r}
 
 
-retire_pos <- all_data %>% filter(grid > 0) %>%
-                              filter(gridtot == 20) %>%
+retire_pos <- all_data2 %>% filter(grid > 0) %>%
+                              filter(Gridtot == 20) %>%
                            mutate(ret = if_else(positionText == "R", 1, 0 )) %>%
                                 filter(year > 2005) %>%
                                 group_by(grid) %>%
@@ -144,7 +160,7 @@ ggplot(retire_pos, aes(x = grid, y = per)) + geom_point()
 ```{R}
 
 
-retire <- all_data %>% filter(grid > 0) %>%
+retire <- all_data2 %>% filter(grid > 0) %>%
                             filter(year > 2005) %>%
                                 mutate(ret = if_else(positionText == "R", 1, 0 )) %>%
                                 mutate(less2 = if_else(grid < 2, 1,0), less3 = if_else(grid < 3,1,0))
@@ -158,7 +174,7 @@ retire <- all_data %>% filter(grid > 0) %>%
 ```{r}
 
 
-retiretot <- all_data %>% mutate(ret = if_else(positionText == "R", 1, 0 )) %>%
+retiretot <- all_data2 %>% mutate(ret = if_else(positionText == "R", 1, 0 )) %>%
                             group_by(raceId) %>%
                               summarise( ret2 = sum(ret, na.rm = T))
 
@@ -176,7 +192,7 @@ retiretot <- all_data %>% mutate(ret = if_else(positionText == "R", 1, 0 )) %>%
 ```{r}
 
 
-posg <- all_data %>% left_join(retiretot, by = "raceId") %>%
+posg <- all_data2 %>% left_join(retiretot, by = "raceId") %>%
                   mutate(gridadj = grid - (Factor*ret2) ) %>%
                         mutate(xp =  gridadj - position) 
 
@@ -186,15 +202,37 @@ posg <- all_data %>% left_join(retiretot, by = "raceId") %>%
 ```
 
 
+```{r}
+
+
+gridadj1 <- posg %>% group_by(gridadj) %>%
+                            summarise(meanp = mean(position, na.rm = T))
+
+ggplot(gridadj, aes(x = gridadj, y = meanp)) + geom_point()
+
+```
+
+```{r}
+
+
+lm1 <- lm( meanp ~ gridadj, gridadj1)
+
+
+
+
+
+```
 
 
 ```{r}
 
 
 
-driver <- posg %>% filter(year > 1995) %>%
+driver <- posg %>% mutate(exp = predict(lm1, newdata = posg)) %>%
+                   filter(year > 1995) %>%
+                      mutate(delta = exp - position) %>%
                     group_by(driverRef) %>%
-                        summarise(meanxp = mean(xp, na.rm= T), races = n()) 
+                        summarise(meanxp = mean(delta, na.rm= T), races = n()) 
 
 ggplot(driver, aes(x = races, y = meanxp, label = driverRef)) + geom_text()
 
@@ -228,10 +266,12 @@ ggplot(ham, aes(x = year, y = meanxp)) + geom_col()
 
 
 
-ham2 <- posg %>% filter(code == "RAI") %>%
-                    filter(year == 2020)
+ham2 <- posg %>% mutate(exp = predict(lm1, newdata = posg)) %>%
+                  filter(code == "SAI")  %>%
+                      mutate(delta = exp - position) 
 
 
+ggplot(ham2, aes(x = raceno, y = delta)) + geom_line()
 
 
 ```
