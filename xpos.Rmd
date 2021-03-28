@@ -267,8 +267,9 @@ ggplot(ham, aes(x = year, y = meanxp)) + geom_col()
 
 
 ham2 <- posg %>% mutate(exp = predict(lm1, newdata = posg)) %>%
-                  filter(code == "SAI")  %>%
-                      mutate(delta = exp - position) 
+                  filter(code == "BOT")  %>%
+                      mutate(delta = exp - position) %>%
+                      filter(!is.na(delta))
 
 
 ggplot(ham2, aes(x = raceno, y = delta)) + geom_line()

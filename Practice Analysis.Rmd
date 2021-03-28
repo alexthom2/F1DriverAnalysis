@@ -1,0 +1,103 @@
+---
+title: "PracticeData"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+library(tidyverse)
+
+
+
+```
+
+
+
+```{r}
+
+setwd("~/Projects/F1/Data")
+
+
+r1 <- read_csv("r1.csv")
+
+```
+
+
+```{r}
+
+
+
+temcols <- c("Mclaren" = "#ebb134", "Mercedes" = "black", "Red Bull" = "#2c005e", "Alpha Tauri" = "#000f45", "Aston Martin" = "#007d00", "Alpine" = "#0073b5", "Ferrari" = "#e30000", "Alfa Romeo" = "#820000", "Haas" = "#b50000", "Williams" = "#0917b5") 
+
+
+
+````
+
+```{r}
+
+
+
+
+ggplot(r1, aes(x = Lap, y = Laptime, col = Team)) + geom_point() + geom_smooth(method = "lm", se = F) +
+                                          scale_colour_manual(values = temcols)
+
+
+````
+
+
+
+
+
+
+```{r}
+
+
+
+ggplot(r1, aes(x = Lap, y = Laptime, col = Team)) + geom_point() + geom_smooth(method = "lm", se = F) +
+                                          scale_colour_manual(values = temcols) +
+                                              facet_wrap(~Tyre)
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+
+
+
+
+r1_ham <- r1 %>% filter(Driver %in% c("HAM", "VER"))
+
+
+
+
+ggplot(r1_ham, aes(x = Lap, y = Laptime, col = Team)) + geom_point() + geom_smooth(method = "lm", se = F) +
+                                          scale_colour_manual(values = temcols)
+
+
+
+
+
+
+
+
+
+
+
+
+````
