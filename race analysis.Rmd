@@ -1,0 +1,136 @@
+---
+title: "Race Analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+library(tidyverse)
+
+
+````
+
+
+```{r}
+
+
+
+
+setwd("~/Projects/F1/Data")
+
+
+
+circuits <- read_csv("circuits.csv")
+
+constures <- read_csv("constructor_results.csv")
+
+construcst <- read_csv("constructor_standings.csv")
+
+constructors <- read_csv("constructors.csv")
+
+dristan <- read_csv("driver_standings.csv")
+
+
+drivers <- read_csv("drivers.csv")
+
+
+laptimes <- read_csv("lap_times.csv")
+
+
+pits <- read_csv("pit_stops.csv")
+
+qual = read_csv("qualifying.csv")
+
+races <- read_csv("races.csv")
+
+results <- read_csv("results.csv")
+
+seasons <- read_csv("seasons.csv")
+
+status <- read_csv("status.csv")
+
+
+
+
+
+
+
+```
+
+
+
+```{r}
+
+
+
+lando <- laptimes %>% left_join(races, by = "raceId") %>%
+                                left_join(drivers, by = "driverId") %>%
+                        left_join(pits, by = c("raceId", "lap", "driverId")) %>%
+                            filter(name == "Bahrain Grand Prix") %>%
+                              filter(year > 2018) %>%
+                                filter(code %in% c("NOR")) %>%
+                                  mutate(seconds = milliseconds.x / 1000) %>%
+                                      group_by(year) %>%
+                                      fill(stop) %>%
+                                      mutate(stint = if_else(is.na(stop),1, 1 + stop)) %>%
+                                      mutate(lugdur = lag(duration)) %>%
+                                        mutate(stopfl = if_else(!is.na(duration),1 ,
+                                                          if_else(!is.na(lugdur), 1, 2))) %>%
+                                          filter(stopfl == 2) %>%
+                                              filter(seconds < 100)
+
+
+ggplot(lando, aes(x = lap, y = seconds, col = as.factor(year))) + 
+                                        geom_point() +  geom_smooth(method = "lm", se = F) +
+                                          facet_wrap(~stint, scales = "free_x")
+
+
+
+```
+
+
+
+
+
+
+```{r}
+
+
+
+
+lando <- laptimes %>% left_join(races, by = "raceId") %>%
+                                left_join(drivers, by = "driverId") %>%
+                        left_join(pits, by = c("raceId", "lap", "driverId")) %>%
+                            filter(name == "Bahrain Grand Prix") %>%
+                              filter(year > 2020) %>%
+                                filter(code %in% c("HAM", "BOT")) %>%
+                                  mutate(seconds = milliseconds.x / 1000) %>%
+                                      group_by(code) %>%
+                                      fill(stop) %>%
+                                      mutate(stint = if_else(is.na(stop),1, 1 + stop)) %>%
+                                      mutate(lugdur = lag(duration)) %>%
+                                        mutate(stopfl = if_else(!is.na(duration),1 ,
+                                                          if_else(!is.na(lugdur), 1, 2))) %>%
+                                          filter(stopfl == 2) %>%
+                                              filter(seconds < 100) %>%
+                                                filter(stint < 4)
+
+
+ggplot(lando, aes(x = lap, y = seconds, col = as.factor(code))) + 
+                                        geom_point() +  geom_smooth(method = "lm", se = F) +
+                                          facet_wrap(~stint, scales = "free_x")
+
+
+
+
+
+
+
+
+
+````

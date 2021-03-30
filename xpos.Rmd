@@ -267,8 +267,8 @@ ggplot(ham, aes(x = year, y = meanxp)) + geom_col()
 
 
 ham2 <- posg %>% mutate(exp = predict(lm1, newdata = posg)) %>%
-                  filter(code == "BOT")  %>%
-                      mutate(delta = exp - position) %>%
+                  filter(code == "HAM")  %>%
+                     
                       filter(!is.na(delta))
 
 
@@ -276,3 +276,48 @@ ggplot(ham2, aes(x = raceno, y = delta)) + geom_line()
 
 
 ```
+
+
+
+```{R}
+
+
+
+
+R121 <- posg %>% mutate(exp = predict(lm1, newdata = posg)) %>%
+                        filter(raceId == 1052) %>%
+                               mutate(delta = exp - position)
+
+
+
+```
+
+
+
+```{r}
+
+maxavpos <- all_data2 %>% group_by(year, raceId, constructorRef) %>%
+                              summarise(max = min(grid)) %>%
+                                ungroup() %>%
+                                  group_by(year, constructorRef) %>%
+                                      summarise(meanp = mean(max, na.rm = T))
+
+
+
+
+````
+
+
+
+```{r}
+
+
+
+
+
+
+```
+
+
+
+

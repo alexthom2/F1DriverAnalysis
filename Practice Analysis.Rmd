@@ -40,10 +40,22 @@ temcols <- c("Mclaren" = "#ebb134", "Mercedes" = "black", "Red Bull" = "#2c005e"
 
 ```{r}
 
+r1_cleaned <- r1 %>% group_by(Driver) %>%
+                          mutate(laglt = lag(Laptime)) %>%
+                                mutate(delta = Laptime-laglt) 
+
+
+```
 
 
 
-ggplot(r1, aes(x = Lap, y = Laptime, col = Team)) + geom_point() + geom_smooth(method = "lm", se = F) +
+
+```{r}
+
+
+
+
+ggplot(r1, aes(x = Lap, y = Laptime, col = Team, group = Driver)) + geom_point() + geom_smooth(method = "lm", se = F) +
                                           scale_colour_manual(values = temcols)
 
 
@@ -58,7 +70,7 @@ ggplot(r1, aes(x = Lap, y = Laptime, col = Team)) + geom_point() + geom_smooth(m
 
 
 
-ggplot(r1, aes(x = Lap, y = Laptime, col = Team)) + geom_point() + geom_smooth(method = "lm", se = F) +
+ggplot(r1, aes(x = Lap, y = Laptime, col = Team, group = Driver)) + geom_point() + geom_smooth(method = "lm", se = F) +
                                           scale_colour_manual(values = temcols) +
                                               facet_wrap(~Tyre)
 
