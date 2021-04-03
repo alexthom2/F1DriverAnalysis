@@ -68,7 +68,8 @@ factor <- read_xlsx("facetor.xlsx")
 all_data <- results %>% left_join(races, by = "raceId") %>%
                             left_join(constructors, by = "constructorId") %>%
                                 left_join(drivers, by = "driverId") %>%
-                                      left_join(status, by = "statusId") 
+                                      left_join(status, by = "statusId")  %>%
+                                      left_join(circuits, by = "circuitId")
 
 
 #%>%
@@ -307,12 +308,27 @@ maxavpos <- all_data2 %>% group_by(year, raceId, constructorRef) %>%
 
 ````
 
+```{r}
+
+
+position <- c(1:24)
+
+points <- c(50,40,33,28,25,22,20,19,16,13,10,9,8,7,6,5,4,3,2,1,0.75,0.5,0.25,0)
+
+
+pointdat <- data.frame(position, points)
+
+
+```
+
+
 
 
 ```{r}
 
 
-
+all_data3 <- all_data2 %>% left_join(maxavpos, by = c("year", "constructorRef")) %>%
+  
 
 
 
