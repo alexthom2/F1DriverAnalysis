@@ -16,6 +16,8 @@ library(tidyverse)
 
 library(readxl)
 
+library(tidymodels)
+
 ```
 
 
@@ -342,6 +344,34 @@ all_data3 <- all_data2 %>% left_join(maxavpos, by = c("year", "constructorRef"))
 
 ```
 
+
+
+```{r}
+
+split <- initial_split(all_data3, prop = 0.75)
+
+
+train <- training(split)
+
+testing <- testing(split)
+
+
+
+
+```
+
+
+
+```{r}
+
+
+f1_rand <- recipe(points.y ~ ., train) %>%
+                    rand_forest(mode = "regression") %>%
+                      set_engine("ranger")
+
+
+
+```
 
 
 
