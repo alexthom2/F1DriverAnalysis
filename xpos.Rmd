@@ -297,7 +297,8 @@ R121 <- posg %>% mutate(exp = predict(lm1, newdata = posg)) %>%
 
 ```{r}
 
-maxavpos <- all_data2 %>% group_by(year, raceId, constructorRef) %>%
+maxavpos <- all_data2 %>% filter(grid > 0) %>%
+                          group_by(year,  raceId, constructorRef) %>%
                               summarise(max = min(grid)) %>%
                                 ungroup() %>%
                                   group_by(year, constructorRef) %>%
@@ -328,7 +329,14 @@ pointdat <- data.frame(position, points)
 
 
 all_data3 <- all_data2 %>% left_join(maxavpos, by = c("year", "constructorRef")) %>%
-  
+                              left_join(circuits, by = "circuitId") %>%
+                               left_join(pointdat, by = "position") %>%
+                                  left_join(retiretot, by = "raceId") %>%
+                                  select(grid, position, year, status, points.y, meanp, ret2, Type) %>%
+                                        filter(!is.na(position)) %>%
+                                          filter(year > 1985) %>%
+                                            filter(year < 2015) %>%
+                                              select(grid, points.y, meanp, ret2, Type)
 
 
 
