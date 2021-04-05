@@ -539,7 +539,38 @@ f1_rand2 <-
 ```{r}
 
 
+predictions1 <- predict(f1_rand, new_data = r1)
 predictions2 <- predict(f1_rand2, new_data = r1)
+
+r1b <- r1 %>% bind_cols(predictions1) %>% 
+                bind_cols(predictions2) %>% 
+                    select(grid, position, code, year, status, points.y, meanp, ret2, Type,.pred...55,.pred...56 )
+
+
+
+
+````
+
+```{r}
+ 
+r1c <- r1b %>% rename(mod1 = .pred...55, mod2=  .pred...56, actp = points.y) %>%
+                              pivot_longer(cols = c("mod1", "mod2", "actp"), names_to = "meas", values_to = "val")
+
+
+
+ggplot(r1c, aes(x = reorder(code, position), y = val, col = meas)) + geom_point() + coord_flip()
+
+
+
+
+
+
+```
+
+```{r}
+
+
+predictions2 <- predict(f1_rand2, new_data = alldri)
 
 
 
