@@ -388,9 +388,173 @@ r1 <- all_data2 %>% left_join(maxavpos, by = c("year", "constructorRef")) %>%
 
 predictions <- predict(f1_rand, new_data = r1)
 
+```
+
+
+
+```{r}
+
+
+r1b <- r1 %>% bind_cols(predictions) %>%
+                    select(grid, position, code, year, status, points.y, meanp, ret2, Type, .pred)
 
 
 ```
 
 
 
+```{r}
+
+alldri <- all_data2 %>% left_join(maxavpos, by = c("year", "constructorRef")) %>%
+                              left_join(circuits, by = "circuitId") %>%
+                               left_join(pointdat, by = "position") %>%
+                                  left_join(retiretot, by = "raceId") %>%
+                                    filter(year > 2000) %>%
+                                      filter(!is.na(position))
+
+
+
+predictions <- predict(f1_rand, new_data = alldri)
+
+
+
+````
+
+
+
+```{r}
+
+
+alldri2 <- alldri %>% bind_cols(predictions) %>%
+                    select(grid, position, code, year, status, points.y, meanp, ret2, Type, .pred) %>%
+                          mutate(delta = points.y - .pred) %>%
+                            group_by(code) %>%
+                              summarise(meap = mean(delta), n = n())
+
+
+ggplot(alldri2, aes(x = n, y = meap, label = code)) + geom_text()
+
+
+
+
+```
+
+```{r}
+
+
+
+alldri3 <- alldri %>% bind_cols(predictions) %>%
+                    select(grid, position, code,raceno, year, status, points.y, meanp, ret2, Type, .pred) %>%
+                          mutate(delta = points.y - .pred) %>%
+                              filter(code == "VER")
+
+
+
+ggplot(alldri3, aes(x = raceno, y = delta)) + geom_line()
+
+
+
+````
+
+```{r}
+
+
+f1_folds <- bootstraps(train, strata = points.y)
+f1_folds
+
+
+
+
+```
+
+
+```{r}
+
+ranger_recipe <-
+  recipe(formula =  points.y ~ ., data = train) 
+
+
+ranger_spec <-
+  rand_forest(mtry = tune(), min_n = tune(), trees = 1000) %>%
+  set_mode("regression") %>%
+  set_engine("ranger")
+
+ranger_workflow <-
+  workflow() %>%
+  add_recipe(ranger_recipe) %>%
+  add_model(ranger_spec)
+
+set.seed(8577)
+doParallel::registerDoParallel()
+ranger_tune <-
+  tune_grid(ranger_workflow,
+    resamples = f1_folds,
+    grid = 11
+  )
+
+
+
+
+
+
+```
+
+```{r}
+
+show_best(ranger_tune, metric = "rsq")
+
+
+
+
+```
+
+
+
+```{r}
+
+autoplot(ranger_tune)
+
+
+````
+
+
+
+```{r}
+
+f1_rand2 <- 
+                    rand_forest(mode = "regression", mtry = 2, min_n = 32) %>%
+                      set_engine("ranger") %>%
+                        fit(points.y ~ ., data = train)
+
+
+
+
+
+
+
+
+````
+
+
+```{r}
+
+
+predictions2 <- predict(f1_rand2, new_data = r1)
+
+
+
+alldri2 <- alldri %>% bind_cols(predictions) %>%
+                       bind_cols(predictions2)
+
+#
+ #                   select(grid, position, code, year, status, points.y, meanp, ret2, Type, .pred) %>%
+  #                        mutate(delta = points.y - .pred) %>%
+   #                         group_by(code) %>%
+    #                          summarise(meap = mean(delta), n = n())
+
+
+
+
+
+
+```
