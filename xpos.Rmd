@@ -570,21 +570,24 @@ ggplot(r1c, aes(x = reorder(code, position), y = val, col = meas)) + geom_point(
 ```{r}
 
 
-predictions2 <- predict(f1_rand2, new_data = alldri)
+predictions3 <- predict(f1_rand, new_data = alldri)
+
+predictions4 <- predict(f1_rand2, new_data = alldri)
 
 
 
-alldri2 <- alldri %>% bind_cols(predictions) %>%
-                       bind_cols(predictions2)
+alldri4 <- alldri %>% bind_cols(predictions3) %>%
+                       bind_cols(predictions4) %>%
+                           filter(code == "NOR") %>%
+               select(grid, position, code,raceno, year, status, points.y, meanp, ret2, Type ,.pred...55, .pred...56 ) %>%
+                          rename(mod1 = .pred...55, mod2=  .pred...56, actp = points.y) %>%
+                          mutate(delta1 = actp - mod1, delta2 = actp - mod2) %>%
+                              select(raceno, delta1, delta2) %>%
+                                  pivot_longer(cols = 2:3, names_to = "mod", values_to = "val")
 
-#
- #                   select(grid, position, code, year, status, points.y, meanp, ret2, Type, .pred) %>%
-  #                        mutate(delta = points.y - .pred) %>%
-   #                         group_by(code) %>%
-    #                          summarise(meap = mean(delta), n = n())
 
 
-
+ggplot(alldri4, aes(x = raceno, y = val, col= mod)) + geom_line()
 
 
 
