@@ -592,3 +592,23 @@ ggplot(alldri4, aes(x = raceno, y = val, col= mod)) + geom_line()
 
 
 ```
+
+
+
+
+
+
+```{r}
+
+
+
+
+
+
+
+
+
+
+
+
+```
