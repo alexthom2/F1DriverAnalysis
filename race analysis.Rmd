@@ -306,7 +306,7 @@ tyre_use2 <- tyreuse %>% pivot_longer(cols = 4:14, names_to = "na", values_to = 
 
 
 
-
+tyre_use2$stint <- as.numeric(as.character(tyre_use2$stint))
 
 
 
@@ -344,9 +344,120 @@ all_stints <- laptimes %>% left_join(races, by = "raceId") %>%
                                                           group_by(code, year.x, round.x, stint) %>%
                                                             summarise(medl = median(seconds)) 
 
-colnames(all_stints)[1] <- "Year"
+colnames(all_stints)[1] <- "Driver"
 colnames(all_stints)[2] <- "Season"
+colnames(all_stints)[3] <- "Race"
 
 
+
+```
+```{r}
+
+
+
+
+all_stints2 <- laptimes %>% left_join(races, by = "raceId") %>%
+                                left_join(drivers, by = "driverId") %>%
+                        left_join(pits, by = c("raceId", "lap", "driverId")) %>%
+                              filter(year > 2019) %>%
+                                  mutate(seconds = milliseconds.x / 1000) %>%
+                                      group_by(code, raceId) %>%
+                                      fill(stop) %>%
+                                      mutate(stint = if_else(is.na(stop),1, 1 + stop)) %>%
+                                      mutate(lugdur = lag(duration)) %>%
+                                        mutate(stopfl = if_else(!is.na(duration),1 ,
+                                                          if_else(!is.na(lugdur), 1, 2))) %>%
+                                            left_join(qualbest2, by = "circuitId") %>% 
+                                              
+                                              mutate(delta = seconds/qualt-1) %>%
+                                                filter(delta < 0.5) %>%
+                                                  ungroup() %>%
+                                                    group_by(stint,raceId.x, code) %>%
+                                                        mutate(stintlp = 1:n(), minl = min(lap))  %>%
+                                                              filter(stintlp == 4) %>%
+                                                                ungroup() %>%
+                                                                  select(code, year.x, round.x, stint, seconds, minl)
+
+colnames(all_stints2)[1] <- "Driver"
+colnames(all_stints2)[2] <- "Season"
+colnames(all_stints2)[3] <- "Race"
+
+
+
+
+
+
+```
+
+
+
+```{r}
+
+
+ggplot(all_stints2, aes(x = stintlp)) + geom_histogram()
+
+
+
+
+
+
+
+
+
+```
+
+```{r}
+
+all_stints_t <- all_stints %>% left_join(tyre_use2, by = c("Driver", "Season", "Race", "stint")) %>%
+                        left_join(all_stints2, by = c("Driver", "Season", "Race", "stint")) %>%
+                                select(Driver, Season, Race, stint, tyre) %>%
+                                  pivot_wider(names_from = stint, values_from = tyre) %>%
+                                    mutate(stint_1 = if_else(`1` == `2`, 1, 
+                                                             if_else(`1` == `3`, 1, 
+                                                              if_else(`1` == `4`, 1, 
+                                                               if_else(`1` == `5`, 1, 0))))) %>%
+                                    mutate(stint_2 = if_else(`2` == `1`, 1, 
+                                                             if_else(`2` == `3`, 1, 
+                                                              if_else(`2` == `4`, 1, 
+                                                               if_else(`2` == `5`, 1, 0))))) %>%
+                                      mutate(stint_3 = if_else(`3` == `1`, 1, 
+                                                             if_else(`3` == `2`, 1, 
+                                                              if_else(`3` == `4`, 1, 
+                                                               if_else(`3` == `5`, 1, 0))))) %>%
+                                        mutate(stint_4 = if_else(`4` == `1`, 1, 
+                                                             if_else(`4` == `2`, 1, 
+                                                              if_else(`4` == `3`, 1, 
+                                                               if_else(`4` == `5`, 1, 0))))) %>%
+                                          mutate(stint_5 = if_else(`5` == `1`, 1, 
+                                                             if_else(`5` == `2`, 1, 
+                                                              if_else(`5` == `4`, 1, 
+                                                               if_else(`5` == `3`, 1, 0))))) %>%
+                                            select(-`1`, -`2`, -`3`, -`4`,-`5`,-`6`,-`7`) %>%
+                               pivot_longer(cols = 4:8, names_to = "st", values_to = "match") %>%
+                                          separate(col = st, into = c("st", "stint"), sep = "_") %>%
+                                                  select(-st)
+
+
+all_stints_t$stint <- as.numeric(as.character(all_stints_t$stint))
+
+````
+
+
+
+
+```{r}
+
+
+all_stints_3 <- all_stints %>% left_join(tyre_use2, by = c("Driver", "Season", "Race", "stint")) %>%
+                        left_join(all_stints2, by = c("Driver", "Season", "Race", "stint")) %>%
+                                left_join(all_stints_t,by = c("Driver", "Season", "Race", "stint") ) %>%
+                                      filter(match == 1)
+
+
+
+lapdelta <-  all_stints_3 %>% select(Driver, Season, Race, stint, minl) %>%
+                                   group_by(Driver, Season, Race) %>%
+                                      mutate(stin = 1:n())
+                                    pivot_wider(names_from = stint, values_from = minl) 
 
 ```
