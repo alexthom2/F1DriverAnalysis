@@ -373,8 +373,9 @@ all_stints2 <- laptimes %>% left_join(races, by = "raceId") %>%
                                                 filter(delta < 0.5) %>%
                                                   ungroup() %>%
                                                     group_by(stint,raceId.x, code) %>%
-                                                        mutate(stintlp = 1:n(), minl = min(lap))  %>%
+                                                        mutate(stintlp = 1:n())  %>%
                                                               filter(stintlp == 4) %>%
+                                                              mutate(minl = min(lap)) %>%
                                                                 ungroup() %>%
                                                                   select(code, year.x, round.x, stint, seconds, minl)
 
@@ -457,7 +458,36 @@ all_stints_3 <- all_stints %>% left_join(tyre_use2, by = c("Driver", "Season", "
 
 lapdelta <-  all_stints_3 %>% select(Driver, Season, Race, stint, minl) %>%
                                    group_by(Driver, Season, Race) %>%
-                                      mutate(stin = 1:n())
-                                    pivot_wider(names_from = stint, values_from = minl) 
+                                      mutate(stin = 1:n()) %>%
+                                        filter(stin < 3) %>%
+                                          select(-stint) %>%
+                                    pivot_wider(names_from = stin, values_from = minl) %>%
+                                          mutate(dell = `2`-`1`) %>%
+                                            select(-`1`, -`2`)
+
+```
+
+
+
+
+```{r}
+
+all_stints_4 <- all_stints_3 %>% select(Driver, Season, Race, stint, medl) %>%
+                            group_by(Driver, Season, Race) %>%
+                                      mutate(stin = 1:n()) %>%
+                                        filter(stin < 3) %>%
+                                          select(-stint)  %>%
+                                              pivot_wider(names_from = stin, values_from = medl) %>%
+                                        left_join(lapdelta, by = c("Driver", "Season", "Race")) %>%
+                                            mutate(fuelr = (`1`-`2`)/dell) %>%
+                                                filter(!is.na(fuelr)) %>%
+                                                  filter(fuelr < 1)
+
+
+
+ggplot(all_stints_4, aes(x = fuelr)) + geom_histogram()
+
+
+
 
 ```
