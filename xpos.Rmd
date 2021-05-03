@@ -90,14 +90,17 @@ all_data <- results %>% left_join(races, by = "raceId") %>%
 ```{r}
 
 grid <- all_data %>% 
-                            group_by(raceId, date) %>%
+                            group_by(raceId, date) %>%  
                               summarise(Gridtot = n()) %>%
                                 ungroup() %>%
                                 arrange(date) %>%
                                   mutate(raceno = 1:n())
 
 
-ggplot(grid, aes(x = raceno, y = Gridtot)) + geom_line()
+ggplot(grid, aes(x = raceno, y = Gridtot)) + 
+                                    geom_line(col = "#32a852") + 
+                          labs(x = "Race No", y = "Grid Size", title = "F1 Grid Size Through Time") + 
+                                theme(panel.background = element_blank())
 
 ```
 
@@ -296,27 +299,12 @@ R121 <- posg %>% mutate(exp = predict(lm1, newdata = posg)) %>%
 ```
 
 
-
-```{r}
-
-maxavpos <- all_data2 %>% filter(grid > 0) %>%
-                          group_by(year,  raceId, constructorRef) %>%
-                              summarise(max = min(grid)) %>%
-                                ungroup() %>%
-                                  group_by(year, constructorRef) %>%
-                                      summarise(meanp = mean(max, na.rm = T))
-
-
-
-
-````
-
 ```{r}
 
 
 position <- c(1:24)
 
-points <- c(50,40,33,28,25,22,20,19,16,13,10,9,8,7,6,5,4,3,2,1,0.75,0.5,0.25,0)
+points <- c(175,155,138,122,107,93,80,68,57,47,38,30,23,17,12,8,5,3,2,0.8,0.4,0.2,0.1,0)
 
 
 pointdat <- data.frame(position, points)
@@ -324,7 +312,97 @@ pointdat <- data.frame(position, points)
 
 ```
 
+```{r}
 
+
+
+maxavpos <- all_data2 %>% filter(grid > 0) %>%
+                          group_by(year,  raceId, name.y) %>%
+                              summarise(max = min(grid)) %>%
+                                ungroup() %>%
+                                  group_by(year, name.y) %>%
+                                      summarise(meanp = mean(max, na.rm = T))
+
+
+
+
+
+````
+```{r}
+
+
+
+qualbest <- qual %>% pivot_longer(cols = 7:9, names_to = "qaul", values_to = "times") %>%
+                                      separate(times, into = c("m", "s","ms"), sep = ":")
+
+
+qualbest$m <- as.numeric(as.character(qualbest$m))
+
+qualbest$s <- as.numeric(as.character(qualbest$s))
+
+
+
+qualbest2_m <- qualbest %>% mutate(qualt = m * 60 + s) %>%
+                              group_by(raceId, driverId) %>%
+                                slice_min(qualt) %>%
+                                  ungroup() %>%
+                      left_join(races, by = "raceId") %>%
+                        left_join(constructors, by = "constructorId") %>%
+                            group_by(raceId) %>%
+                                slice_min(qualt) %>%
+                                  select(raceId, qualt)
+
+colnames(qualbest2_m)[2] <- "pole"
+
+
+qualbest2<- qualbest %>% mutate(qualt = m * 60 + s) %>%
+                      left_join(races, by = "raceId") %>%
+                        left_join(constructors, by = "constructorId") %>%
+                        left_join(qualbest2_m, by = "raceId") %>%
+                          group_by(raceId, name.y) %>%
+                            slice_min(qualt) %>%
+                              mutate(qualdel = qualt / pole -1 ) %>%
+                                select(raceId, name.y, qualt, pole, qualdel) %>%
+                                    left_join(races, by = "raceId") %>%
+                            group_by(year, name.y) %>%
+                                  summarise(mean_del = mean(qualdel))
+          
+
+
+```
+```{r}
+
+
+totpoint <- all_data2 %>% filter(year > 1990) %>%
+                            left_join(pointdat, by = "position") %>%
+                              ungroup() %>%
+                                filter(!is.na(points.y)) %>%
+                              group_by(year, name.y) %>%
+                                summarise(tp = sum(points.y, na.rm =T))
+                                               
+
+```
+
+
+```{r}
+
+point_co <- totpoint %>% left_join(qualbest2, by = c("name.y", "year")) %>%
+                            left_join(maxavpos, by = c("name.y", "year"))
+
+
+ggplot(point_co, aes(x = mean_del, y = tp)) + geom_point()
+
+
+ggplot(point_co, aes(x = meanp, y = tp)) + geom_point()
+
+````
+```{r}
+
+
+
+
+
+```
 
 
 ```{r}
@@ -383,7 +461,11 @@ r1 <- all_data2 %>% left_join(maxavpos, by = c("year", "constructorRef")) %>%
                               left_join(circuits, by = "circuitId") %>%
                                left_join(pointdat, by = "position") %>%
                                   left_join(retiretot, by = "raceId") %>%
-                                    filter(year == 2021)
+                                    filter(year == 2021) %>%
+                                      mutate(grid2 = if_else(grid ==0, 20,grid)) %>%
+                                        select(-grid) 
+
+colnames(r1)[55] <- "grid"
 
 
 predictions <- predict(f1_rand, new_data = r1)
@@ -396,7 +478,7 @@ predictions <- predict(f1_rand, new_data = r1)
 
 
 r1b <- r1 %>% bind_cols(predictions) %>%
-                    select(grid, position, code, year, status, points.y, meanp, ret2, Type, .pred)
+                    select(grid, position, code, year, status, points.y, meanp, ret2, Type, .pred) 
 
 
 ```
@@ -544,7 +626,7 @@ predictions2 <- predict(f1_rand2, new_data = r1)
 
 r1b <- r1 %>% bind_cols(predictions1) %>% 
                 bind_cols(predictions2) %>% 
-                    select(grid, position, code, year, status, points.y, meanp, ret2, Type,.pred...55,.pred...56 )
+                    select(grid, raceId, position, code, year, status, points.y, meanp, ret2, Type,.pred...56,.pred...57 )
 
 
 
@@ -553,7 +635,7 @@ r1b <- r1 %>% bind_cols(predictions1) %>%
 
 ```{r}
  
-r1c <- r1b %>% rename(mod1 = .pred...55, mod2=  .pred...56, actp = points.y) %>%
+r1c <- r1b %>% rename(mod1 = .pred...56, mod2=  .pred...57, actp = points.y) %>%
                               pivot_longer(cols = c("mod1", "mod2", "actp"), names_to = "meas", values_to = "val")
 
 
@@ -579,8 +661,8 @@ predictions4 <- predict(f1_rand2, new_data = alldri)
 alldri4 <- alldri %>% bind_cols(predictions3) %>%
                        bind_cols(predictions4) %>%
                            filter(code == "NOR") %>%
-               select(grid, position, code,raceno, year, status, points.y, meanp, ret2, Type ,.pred...55, .pred...56 ) %>%
-                          rename(mod1 = .pred...55, mod2=  .pred...56, actp = points.y) %>%
+               select(grid, position, code,raceno, year, status, points.y, meanp, ret2, Type ,.pred...56, .pred...57 ) %>%
+                          rename(mod1 = .pred...56, mod2=  .pred...57, actp = points.y) %>%
                           mutate(delta1 = actp - mod1, delta2 = actp - mod2) %>%
                               select(raceno, delta1, delta2) %>%
                                   pivot_longer(cols = 2:3, names_to = "mod", values_to = "val")
@@ -601,14 +683,32 @@ ggplot(alldri4, aes(x = raceno, y = val, col= mod)) + geom_line()
 ```{r}
 
 
+totp <-   r1b %>% group_by(code) %>%
+                          summarise(tp = sum(points.y, na.rm = T), totexp = sum(.pred...56)) %>%
+                              select(code,tp)
 
 
+tttt <- r1b %>% group_by(code) %>%
+                          summarise(totp = sum(points.y, na.rm = T), totexp = sum(.pred...56)) 
 
 
+plot1 <- r1b %>% group_by(code) %>%
+                          summarise(totp = sum(points.y, na.rm = T), totexp = sum(.pred...56)) %>%
+                              pivot_longer(cols = 2:3, names_to = "meas", values_to = "val") %>%
+                                      left_join(totp, by = "code") %>%
+                                          left_join(tttt, by = "code") %>%
+                                            mutate(delta = tp - totexp) %>%
+                                              mutate(colca = if_else(delta < 0, "neg", "pos"))
+                                                  
+cols <- c("neg" = "#9800c7", "pos" = "#fac000")
 
 
-
-
+ggplot(plot1, aes(x = reorder(code,tp), y = val)) + geom_point(aes(),size =5, col = "white") +
+               geom_segment(aes(y = tp, yend = totexp, x = code, xend = code, col = colca), size = 3) +
+                                                    coord_flip() +
+                                              labs(x = "", y = "points", title = "Season 2021 Expected Points by Driver", subtitle = "Yellow Driver is performing above Expected, Purple below") +
+                                    scale_colour_manual(values = cols) +
+                                                        theme(panel.background = element_blank())
 
 
 ```
