@@ -1,0 +1,361 @@
+---
+title: "Qual Estimate"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+
+
+
+
+
+
+```
+
+---
+title: "F1 Pole Position"
+author: "Alex Thom"
+date: "25/04/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(glue)
+library(rvest)
+library(readxl)
+```
+
+```{r}
+######################## fucntion ###############################################
+prac1_scrape <- function(year, raceno, race) {
+  
+  Sys.sleep(1)
+  
+  cat(".")
+  
+  url <- glue("https://www.formula1.com/en/results.html/{year}/races/{raceno}/{race}/practice-1.html")
+  
+  dat2 <-   read_html(url) %>%
+    html_nodes("body > div.site-wrapper > main > article > div > div.ResultArchiveContainer > div.resultsarchive-wrapper > div.resultsarchive-content.group > div.resultsarchive-col-right > table") %>%
+    html_table() 
+  
+  
+  
+  
+  colnames(dat2)[1] <- "col1"
+  colnames(dat2)[9] <- "col2"
+  
+  dat4 <- dat2 %>% separate(Time, c("min", "sec"), ":")
+  
+  dat4$min <- as.numeric(dat4$min)
+  dat4$sec <- as.numeric(dat4$sec)
+  
+  dat5 <- dat4 %>% mutate(time = min * 60 + sec) %>%
+    select(Pos, No, Car, time, Laps)
+  
+  
+  first <- dat5$time[[1]]
+  
+  
+  dat6 <- dat5 %>% mutate(delta = time- first) %>%
+    mutate(gp = race) %>%
+    mutate(race1 = raceno)
+  
+  colnames(dat6)[1] <- "prac1pos"
+  colnames(dat6)[4] <- "pract1t"
+  colnames(dat6)[5] <- "pract1l"
+  colnames(dat6)[6] <- "pract1d"
+  
+  
+  
+  return(dat6)
+  
+}
+prac2_scrape <- function(year, raceno, race) {
+  
+  Sys.sleep(1)
+  
+  cat(".")
+  
+  url <- glue("https://www.formula1.com/en/results.html/{year}/races/{raceno}/{race}/practice-2.html")
+  
+  dat2 <-   read_html(url) %>%
+    html_nodes("body > div.site-wrapper > main > article > div > div.ResultArchiveContainer > div.resultsarchive-wrapper > div.resultsarchive-content.group > div.resultsarchive-col-right > table") %>%
+    html_table() 
+  
+  dat2 <- as.data.frame(dat2)
+  
+  colnames(dat2)[1] <- "col1"
+  colnames(dat2)[9] <- "col2"
+  
+  dat4 <- dat2 %>% separate(Time, c("min", "sec"), ":")
+  
+  dat4$min <- as.numeric(dat4$min)
+  dat4$sec <- as.numeric(dat4$sec)
+  
+  dat5 <- dat4 %>% mutate(time = min * 60 + sec) %>%
+    select(Pos, No, Car, time, Laps)
+  
+  
+  first <- dat5$time[[1]]
+  
+  
+  dat6 <- dat5 %>% mutate(delta = time- first) %>%
+    mutate(gp = race) %>%
+    mutate(race1 = raceno)
+  
+  colnames(dat6)[1] <- "prac2pos"
+  colnames(dat6)[4] <- "pract2t"
+  colnames(dat6)[5] <- "pract2l"
+  colnames(dat6)[6] <- "pract2d"
+  
+  
+  
+  return(dat6)
+  
+}
+prac3_scrape <- function(year, raceno, race) {
+  
+  Sys.sleep(1)
+  
+  cat(".")
+  
+  url <- glue("https://www.formula1.com/en/results.html/{year}/races/{raceno}/{race}/practice-3.html")
+  
+  dat2 <-   read_html(url) %>%
+    html_nodes("body > div.site-wrapper > main > article > div > div.ResultArchiveContainer > div.resultsarchive-wrapper > div.resultsarchive-content.group > div.resultsarchive-col-right > table") %>%
+    html_table() %>%
+    flatten_df() 
+  
+  colnames(dat2)[1] <- "col1"
+  colnames(dat2)[9] <- "col2"
+  
+  dat4 <- dat2 %>% separate(Time, c("min", "sec"), ":")
+  
+  dat4$min <- as.numeric(dat4$min)
+  dat4$sec <- as.numeric(dat4$sec)
+  
+  dat5 <- dat4 %>% mutate(time = min * 60 + sec) %>%
+    select(Pos, No, Car, time, Laps)
+  
+  
+  first <- dat5$time[[1]]
+  
+  
+  dat6 <- dat5 %>% mutate(delta = time- first) %>%
+    mutate(gp = race) %>%
+    mutate(race1 = raceno)
+  
+  colnames(dat6)[1] <- "prac2pos"
+  colnames(dat6)[4] <- "pract2t"
+  colnames(dat6)[5] <- "pract2l"
+  colnames(dat6)[6] <- "pract2d"
+  
+  
+  
+  return(dat6)
+  
+}
+qual_scrape <- function(year, raceno, race) {
+  
+  Sys.sleep(1)
+  
+  cat(".")
+  
+  url <- glue("https://www.formula1.com/en/results.html/{year}/races/{raceno}/{race}/qualifying.html")
+  
+  dat2 <-   read_html(url) %>%
+    html_nodes("body > div.site-wrapper > main > article > div > div.ResultArchiveContainer > div.resultsarchive-wrapper > div.resultsarchive-content.group > div.resultsarchive-col-right > table") %>%
+    html_table() 
+  
+  
+  dat2 <- as.data.frame(dat2)
+  
+  colnames(dat2)[1] <- "col1"
+  
+  dat3 <- dat2 %>% select(Pos, No, Car, Q1, Q2, Q3) %>%
+    gather("qual", "time", -c(Pos, No, Car)) %>%
+    separate(time, c("min", "sec"), ":")
+  
+  
+  dat3$min <- as.numeric(dat3$min)
+  dat3$sec <- as.numeric(dat3$sec)
+  
+  
+  dat5 <- dat3 %>% mutate(time = min * 60 + sec) %>%
+    filter(!is.na(time)) %>%
+    group_by(No) %>%
+    filter(time == min(time)) %>%
+    select(No, time) %>%
+    mutate(race1 = raceno) 
+  
+  
+  colnames(dat5)[2] <- "qtime"
+  
+  return(dat5)
+  
+}
+predprep <- function(x,y,t) {
+  
+  dat1 <- x %>% left_join(y, by= "No") %>%
+    separate(Car.x, c("n1", "n2"), sep = " ") %>%
+    mutate(Team = if_else(n1 == "Mercedes", "Mercedes", 
+                          if_else(n1 == "Red", "Red Bull", 
+                                  if_else(n1 == "Ferrari", "Ferrari", 
+                                          if_else(n1 == "Haas", "Haas", 
+                                                  if_else(n1 == "McLaren", "McLaren",
+                                                          if_else(n1 == "Renault", "Renault", 
+                                                                  if_else(n1 == "Scuderia", "Toro Rosso", 
+                                                                          if_else(n1 == "Williams", "Williams",
+                                                                                  if_else(n1 == "Racing", "Racing Point",
+                                                                                          if_else(n1 == "Alfa", "Alfa Romeo", "NA"))))))))))) %>%
+    select(prac1pos, No, prac2pos,pract1t, pract1l , pract1d, pract2t, pract2l , pract2d , Team) %>%
+    mutate(Length = 4318) %>%
+    filter(!is.na(pract1t)) %>% 
+    filter(!is.na(pract2t)) 
+  
+  
+  dat2 <- trackmat1[trackmat1[, t] == 1,]
+  
+  d3 <- dat2[1:20,]
+  
+  teamm <- dat1 %>% select(Team)
+  
+  teammatm <- model.matrix(~Team-1, teamm)
+  
+  f12 <- dat1 %>% select(-Team, -No)
+  
+  
+  f1all <- cbind(f12, d3)
+  f1all2 <- cbind(f1all, teammatm)
+  
+  f1all3 <- f1all2[1:20,]
+  
+  return(f1all3)
+  
+}
+```
+
+
+
+```{r}
+
+prac221 <- bind_rows(prac2_scrape(2021, 1064, "bahrain"), prac2_scrape(2021, 1065, "italy"), 
+                     prac2_scrape(2021, 1066, "portugal"), prac2_scrape(2021, 1086, "spain"))
+
+
+
+
+qual21 <- bind_rows(qual_scrape(2021, 1064, "bahrain"), qual_scrape(2021, 1065, "italy"), 
+                     qual_scrape(2021, 1066, "portugal"), qual_scrape(2021, 1086, "spain"))
+
+
+
+
+```
+
+
+
+```{r}
+
+
+alldat <- prac221 %>% left_join(qual21, by = c("race1", "No")) %>%
+                        mutate(delta = pract2t/qtime-1) %>%
+                            group_by(Car, race1) %>%
+                              filter(qtime == min(qtime))
+
+
+
+
+````
+
+
+```{r}
+
+
+ggplot(alldat, aes(x = Car, y = delta, col = Car)) + geom_point() + coord_flip()
+ 
+
+
+```
+
+
+
+```{r}
+
+
+alldat_min <- alldat %>% ungroup() %>%
+                          group_by(Car) %>%
+                        filter(delta == min(delta)) %>%
+                          select(Car, delta)
+colnames(alldat_min)[2] <- "min"
+
+
+alldat_max <- alldat %>% ungroup() %>%
+                          group_by(Car) %>%
+                        filter(delta == max(delta)) %>%
+                          select(Car, delta)
+
+colnames(alldat_max)[2] <- "max"
+
+
+
+```
+
+
+```{r}
+
+
+
+
+
+monprac <- prac2_scrape(2021, 1067, "monaco")
+
+```
+
+```{r}
+
+monprac2  <- monprac %>% left_join(alldat_min, by = "Car") %>%
+                            left_join(alldat_max, by = "Car") %>%
+                              group_by(Car) %>%
+                                filter(pract2t == min(pract2t)) %>%
+                                  mutate(mint = pract2t * (1-min)) %>%
+                                    mutate( maxt = pract2t * (1-max)) %>%
+                                      select(Car, mint, maxt) %>%
+                                      pivot_longer(cols = 2:3, names_to = "time", values_to = "value")
+
+
+cols <- c("Ferrari" = "#fc0b03", "Red Bull Racing Honda" = "#250038", "Mercedes" = "#51dbb6", 
+          "McLaren Mercedes" = "#d66304", "Alfa Romeo Racing Ferrari" = "#800004", 
+          "AlphaTauri Honda" = "#0a0047", "Aston Martin Mercedes" = "#003317", 
+          "Alpine Renault" = "#0083bf", "Williams Mercedes" = "#0f00e6", "Haas Ferrari" = "#b52f38")
+
+
+ggplot(monprac2, aes(x = reorder(Car,value), y = value, col = Car)) + geom_line(size = 3) + 
+                                                          coord_flip() +
+                                                            guides(colour = F) +
+  labs(x = "", y = "Qualifying Expected Laptime (s)", title = "Monaco GP Team Expected Qualifying Laptimes") +
+                                                              scale_colour_manual(values = cols) + 
+                                                                    theme(panel.background = element_blank())
+
+
+````
