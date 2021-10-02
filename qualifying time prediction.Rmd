@@ -9,21 +9,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 
-```{r}
-
-
-
-
-
-
-```
-
----
-title: "F1 Pole Position"
-author: "Alex Thom"
-date: "25/04/2020"
-output: html_document
----
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -255,18 +240,79 @@ predprep <- function(x,y,t) {
 }
 ```
 
+```{r}
+
+
+
+prac220 <- bind_rows(prac2_scrape(2020, 1045, "austria"), prac2_scrape(2020, 1046, "austria"), 
+                     prac2_scrape(2020, 1047, "hungary"), prac2_scrape(2020, 1048, "great-britain"),                        prac2_scrape(2020, 1049, "great-britain"),prac2_scrape(2020, 1050, "spain"), 
+                     prac2_scrape(2020, 1051, "belgium"), prac2_scrape(2020, 1052, "italy"), 
+                        prac2_scrape(2020, 1053, "italy"),prac2_scrape(2020, 1054, "russia"),
+                        prac2_scrape(2020, 1055, "germany"), prac2_scrape(2020, 1056, "portugal"), 
+                        prac2_scrape(2020, 1057, "italy"), prac2_scrape(2020, 1058, "turkey"), 
+                        prac2_scrape(2020, 1059, "bahrain"), prac2_scrape(2020, 1060, "bahrain"), 
+                        prac2_scrape(2020, 1061, "abu-dhabi"))
+
+
+
+
+qual20 <- bind_rows(qual_scrape(2020, 1045, "austria"), qual_scrape(2020, 1046, "austria"), 
+                     qual_scrape(2020, 1047, "hungary"), qual_scrape(2020, 1048, "great-britain"),                        qual_scrape(2020, 1049, "great-britain"),qual_scrape(2020, 1050, "spain"), 
+                     qual_scrape(2020, 1051, "belgium"), qual_scrape(2020, 1052, "italy"), 
+                        qual_scrape(2020, 1053, "italy"),qual_scrape(2020, 1054, "russia"),
+                        qual_scrape(2020, 1055, "germany"), qual_scrape(2020, 1056, "portugal"), 
+                        qual_scrape(2020, 1057, "italy"), qual_scrape(2020, 1058, "turkey"), 
+                        qual_scrape(2020, 1059, "bahrain"), qual_scrape(2020, 1060, "bahrain"), 
+                        qual_scrape(2020, 1061, "abu-dhabi"))
+
+
+
+
+
+
+```
+
 
 
 ```{r}
 
+
+alldat2 <- prac220 %>% left_join(qual20, by = c("race1", "No")) %>%
+                        mutate(delta = pract2t/qtime-1) %>%
+                            group_by(Car, race1) %>%
+                              filter(qtime == min(qtime)) %>%
+                              filter(delta > -0.1) %>%
+                              filter(delta < 0.1)
+
+
+
+ggplot(alldat2, aes(x = Car, y = delta, col = Car)) + geom_point() + coord_flip()
+ 
+
+
+
+````
+
+```{r}
+
 prac221 <- bind_rows(prac2_scrape(2021, 1064, "bahrain"), prac2_scrape(2021, 1065, "italy"), 
-                     prac2_scrape(2021, 1066, "portugal"), prac2_scrape(2021, 1086, "spain"))
+                     prac2_scrape(2021, 1066, "portugal"), prac2_scrape(2021, 1086, "spain"), 
+                     prac2_scrape(2021, 1067, "monaco"), prac2_scrape(2021, 1068, "azerbaijan"), 
+                     prac2_scrape(2021, 1070, "france"))
 
 
 
 
 qual21 <- bind_rows(qual_scrape(2021, 1064, "bahrain"), qual_scrape(2021, 1065, "italy"), 
-                     qual_scrape(2021, 1066, "portugal"), qual_scrape(2021, 1086, "spain"))
+                     qual_scrape(2021, 1066, "portugal"), qual_scrape(2021, 1086, "spain"), 
+                     qual_scrape(2021, 1067, "monaco"), qual_scrape(2021, 1068, "azerbaijan"), 
+                     qual_scrape(2021, 1070, "france"))
+
+
+
+
+ggplot(alldat, aes(x = Car, y = delta, col = Car)) + geom_point() + coord_flip()
+ 
 
 
 
@@ -328,13 +374,13 @@ colnames(alldat_max)[2] <- "max"
 
 
 
-monprac <- prac2_scrape(2021, 1067, "monaco")
+Ausprac <- prac2_scrape(2021, 1092, "austria")
 
 ```
 
 ```{r}
 
-monprac2  <- monprac %>% left_join(alldat_min, by = "Car") %>%
+monprac2  <- Ausprac %>% left_join(alldat_min, by = "Car") %>%
                             left_join(alldat_max, by = "Car") %>%
                               group_by(Car) %>%
                                 filter(pract2t == min(pract2t)) %>%

@@ -1,0 +1,688 @@
+---
+title: "Strat Calc"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+library(tidyverse)
+
+
+
+```
+
+
+```{r}
+
+
+start_laptime <- 95
+
+fueldeg <- 0.06
+
+laps <- 1:70
+
+tyre1 <- "soft"
+
+tyre2 <- "medium"
+
+tyre3 <- "hard"
+
+
+```
+
+
+
+```{r}
+
+
+
+f1_sim_s <-  tibble(laps, start_laptime, fueldeg, tyre1)
+
+colnames(f1_sim_s)[4] <- "tyre"
+
+f1_sim_m <- tibble(laps, start_laptime, fueldeg, tyre2)
+
+
+colnames(f1_sim_m)[4] <- "tyre"
+
+
+f1_sim_h <-  tibble(laps, start_laptime, fueldeg, tyre3)
+
+
+colnames(f1_sim_h)[4] <- "tyre"
+
+
+f1_sim <- f1_sim_s %>%
+                      bind_rows(f1_sim_m) %>%
+                        bind_rows(f1_sim_h)
+
+
+f1_sim2 <- f1_sim %>% mutate(lapt = start_laptime - (laps-1)*fueldeg)
+
+ggplot(f1_sim2, aes(x = laps, y = lapt)) + geom_point(colour = "#6d009c") +
+                                                                labs(x = "Lap Number", y = "Laptime (s)", title = "Formula 1 Full Race Laptime") +
+                                                                    theme(panel.background = element_rect(fill = "#c9c9c9"), panel.grid.minor =  element_blank(), panel.grid.major = element_line(colour = "#9c9a9a"))
+
+```
+
+
+
+```{r}
+
+tyre <- "soft"
+ds <- 0
+dr <- 0.2
+dc <- 0.1
+
+
+soft_tyre <- tibble(tyre, ds, dr, dc)
+
+
+tyre <- "medium"
+ds <- 0.75
+dr <- 0.08
+dc <- 0.08
+
+
+medium_tyre <- tibble(tyre, ds, dr, dc)
+
+
+tyre <- "hard"
+ds <- 1.5
+dr <- 0.06
+dc <- 0.07
+
+
+hard_tyre <- tibble(tyre, ds, dr, dc)
+
+
+
+tyre_stats <- soft_tyre %>% bind_rows(medium_tyre) %>%
+                              bind_rows(hard_tyre)
+
+
+
+```
+
+
+
+
+```{r}
+
+
+
+f1_sim3 <- f1_sim2 %>%
+                      left_join(tyre_stats, by = "tyre") %>%
+                        mutate(tl = lapt + ds) %>%
+                        mutate(deg = dr * (1 + dc)^(laps-1)) %>%
+                          mutate(dl = tl+deg)
+
+
+
+cols <- c("soft" = "#6d009c", "medium" = "#eb9b34", "hard" = "#009e45")
+
+ggplot(f1_sim3, aes(x = laps, y = dl, col = tyre)) + geom_point() +
+                                                        ylim(90,110) +
+                                                        scale_color_manual(values = cols) +
+                                                      labs(x = "Lap Number", y = "Laptime (s)", title = "Formula 1 Full Race Laptime") +
+                                                                    theme(panel.background = element_rect(fill = "#c9c9c9"), panel.grid.minor =  element_blank(), panel.grid.major = element_line(colour = "#9c9a9a"))
+
+
+
+f1_sim_group <- f1_sim3 %>% group_by(tyre) %>%
+                                summarise(raceT = sum(dl)/60)
+
+ggplot(f1_sim_group, aes(x = reorder(tyre, raceT), y = raceT, fill = tyre)) + geom_col() + 
+                                                                                coord_flip() +
+                                                                           scale_fill_manual(values = cols) +
+                                                labs(x = "Tyre", y = "Total Race Time (min)", title = "Formula 1 Tyre Race Time") +
+                                                                    theme(panel.background = element_rect(fill = "#c9c9c9"), panel.grid.minor =  element_blank(), panel.grid.major = element_line(colour = "#9c9a9a"))
+
+```
+
+
+```{r}
+
+
+recs <- 1:4900
+
+
+recs2 <- tibble(recs)
+
+f1_sim_s2 <- f1_sim2 %>% filter(tyre == "soft")
+
+recs3 <- recs2 %>% full_join(f1_sim_s2, by = character()) %>%
+                        filter(recs < 71)
+
+
+```
+
+
+```{r}
+
+
+f1_stint <- f1_sim_s %>% mutate(stopl = laps) %>%
+                            mutate(newt = "medium")
+
+colnames(f1_stint)[1] <- "recs"
+colnames(f1_stint)[5] <- "laps"
+colnames(f1_stint)[6] <- "ntyre"
+
+
+
+
+
+colnames(tyre_stats)[1] <- "lap_tyre"
+
+
+f1_sim_4 <- recs3 %>% left_join(f1_stint, by = c("recs", "laps")) %>%
+                            group_by(recs) %>%
+                              fill(ntyre, .direction = "down") %>% 
+                                mutate(lap_tyre = if_else(is.na(ntyre), tyre.x, ntyre)) %>%
+                                  group_by(recs, lap_tyre) %>%
+                                      mutate(tyre_age = 1:n()) %>%
+                                        left_join(tyre_stats, by = "lap_tyre") %>%
+                                             mutate(deg = dr * (1 + dc)^(tyre_age-1)) %>%
+                          mutate(dl = lapt+deg+ds) %>%
+                              ungroup() %>%
+                                  group_by(recs) %>%
+                                      summarise(tott = sum(dl)) %>%
+                                      mutate(strat = "sm")
+
+ 
+ggplot(f1_sim_4, aes(x = recs, y = tott)) + geom_point(col = "#6d009c") + 
+                                                       labs(x = "Lap", y = "Total Race Time (min)", title = "Formula 1 Race Time Soft/Medium Strategy") +
+                                                                    theme(panel.background = element_rect(fill = "#c9c9c9"), panel.grid.minor =  element_blank(), panel.grid.major = element_line(colour = "#9c9a9a"))
+ 
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+
+f1_stint <- f1_sim_s %>% mutate(stopl = laps) %>%
+                            mutate(newt = "hard")
+
+colnames(f1_stint)[1] <- "recs"
+colnames(f1_stint)[5] <- "laps"
+colnames(f1_stint)[6] <- "ntyre"
+
+```
+
+
+```{r}
+
+
+colnames(tyre_stats)[1] <- "lap_tyre"
+
+
+f1_sim_5 <- recs3 %>% left_join(f1_stint, by = c("recs", "laps")) %>%
+                            group_by(recs) %>%
+                              fill(ntyre, .direction = "down") %>% 
+                                mutate(lap_tyre = if_else(is.na(ntyre), tyre.x, ntyre)) %>%
+                                  group_by(recs, lap_tyre) %>%
+                                      mutate(tyre_age = 1:n()) %>%
+                                        left_join(tyre_stats, by = "lap_tyre") %>%
+                                             mutate(deg = dr * (1 + dc)^(tyre_age-1)) %>%
+                          mutate(dl = lapt+deg+ds) %>%
+                              ungroup() %>%
+                                  group_by(recs) %>%
+                                      summarise(tott = sum(dl)) %>%
+                                        mutate(strat = "sh")
+
+
+
+
+f1_sim_6 <- f1_sim_4 %>% bind_rows(f1_sim_5)
+
+
+ggplot(f1_sim_6, aes(x = recs, y = tott, col = strat)) + geom_point()
+ 
+
+```
+
+
+
+
+```{r}
+
+
+
+f1_stint <- f1_sim_s %>% mutate(stopl = laps) %>%
+                            mutate(newt = "hard")
+
+colnames(f1_stint)[1] <- "recs"
+colnames(f1_stint)[5] <- "laps"
+colnames(f1_stint)[6] <- "ntyre"
+
+colnames(tyre_stats)[1] <- "lap_tyre"
+
+
+f1_sim_7 <- recs3 %>% left_join(f1_stint, by = c("recs", "laps")) %>%
+                            group_by(recs) %>%
+                              fill(ntyre, .direction = "down") %>% 
+                                mutate(lap_tyre = if_else(is.na(ntyre), "medium", ntyre)) %>%
+                                  group_by(recs, lap_tyre) %>%
+                                      mutate(tyre_age = 1:n()) %>%
+                                        left_join(tyre_stats, by = "lap_tyre") %>%
+                                             mutate(deg = dr * (1 + dc)^(tyre_age-1)) %>%
+                          mutate(dl = lapt+deg+ds) %>%
+                              ungroup() %>%
+                                  group_by(recs) %>%
+                                      summarise(tott = sum(dl)) %>%
+                                        mutate(strat = "mh")
+
+
+
+
+f1_sim_8 <- f1_sim_4 %>% bind_rows(f1_sim_5) %>%
+                            bind_rows(f1_sim_7)
+
+
+cols <-  c("mh" = "#6d009c", "sh" = "#eb9b34", "sm" = "#009e45")
+
+ggplot(f1_sim_8, aes(x = recs, y = tott, col = strat)) + geom_point()  +
+                                                            ylim(6500, 7000) + 
+                                                              scale_color_manual(values = cols) + 
+                                                                  guides(colour = guide_legend(title = "Strategy")) + 
+                                                              labs(x = "Lap", y = "Total Race Time (Sec)", title = "Formula 1 Race Time ") +
+                                     theme(panel.background = element_rect(fill = "#c9c9c9"), panel.grid.minor =  element_blank(), panel.grid.major = element_line(colour = "#9c9a9a"))
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+```{r}
+
+min_t <- f1_sim_8 %>% group_by(strat) %>% 
+                          slice(which.min(tott))
+
+
+
+ggplot(min_t, aes(x = reorder(strat, tott), y = tott, fill = strat)) + geom_col() + 
+                                                                                coord_flip() +
+                                                                          # scale_fill_manual(values = cols) +
+                                                labs(x = "Tyre", y = "Total Race Time (min)", title = "Formula 1 Tyre Race Time") +
+                                                                    theme(panel.background = element_rect(fill = "#c9c9c9"), panel.grid.minor =  element_blank(), panel.grid.major = element_line(colour = "#9c9a9a"))
+
+
+
+colnames(min_t)[2] <- "mint"
+
+
+f1_sim_9 <- f1_sim_8 %>% left_join(min_t, by = "strat") %>%
+                                mutate(delta = tott - mint) %>%
+                                  mutate(fil = if_else(delta < 3, 1,0)) %>%
+                                      filter(fil == 1)
+
+
+ggplot(f1_sim_9, aes(x = recs.x, y = strat, col = strat)) + geom_point() + 
+                                                                     
+                                                            xlim(0, 70) + 
+                                                              scale_color_manual(values = cols) + 
+                                                                  guides(colour = guide_legend(title = "Strategy")) + 
+                                                              labs(x = "Lap", y = "Strategy", title = "Formula 1 Strategy Pit Windows") +
+                                     theme(panel.background = element_rect(fill = "#c9c9c9"), panel.grid.minor =  element_blank(), panel.grid.major = element_line(colour = "#9c9a9a"))
+
+```
+
+
+
+```{r}
+
+
+
+f1_sim_10 <- recs3 %>% left_join(f1_stint, by = c("recs", "laps")) %>%
+                                group_by(recs) %>%
+                              fill(ntyre, .direction = "down") %>% 
+                                mutate(lap_tyre = if_else(is.na(ntyre), tyre.x, ntyre)) %>%
+                                  group_by(recs, lap_tyre) %>%
+                                      mutate(tyre_age = 1:n()) %>%
+                                        left_join(tyre_stats, by = "lap_tyre") %>% 
+                                            mutate(ds2 = ds + 0.2, dr2 = dr/100*99, dc2 = dc/100*99) %>%
+                                               mutate(deg = dr2 * (1 + dc2)^(tyre_age-1)) %>%
+                          mutate(dl = lapt+deg+ds2) %>%
+                              ungroup() %>%
+                                  group_by(recs) %>%
+                                      summarise(tott = sum(dl))  %>% 
+                                        mutate(style = "conserve")
+
+
+
+
+
+
+
+```
+
+
+```{r}
+
+
+colnames(tyre_stats)[1] <- "lap_tyre"
+
+
+f1_sim_5 <- recs3 %>% left_join(f1_stint, by = c("recs", "laps")) %>%
+                            group_by(recs) %>%
+                              fill(ntyre, .direction = "down") %>% 
+                                mutate(lap_tyre = if_else(is.na(ntyre), tyre.x, ntyre)) %>%
+                                  group_by(recs, lap_tyre) %>%
+                                      mutate(tyre_age = 1:n()) %>%
+                                        left_join(tyre_stats, by = "lap_tyre") %>%
+                                             mutate(deg = dr * (1 + dc)^(tyre_age-1)) %>%
+                          mutate(dl = lapt+deg+ds) %>%
+                              ungroup() %>%
+                                  group_by(recs) %>%
+                                      summarise(tott = sum(dl)) %>%
+                                        mutate(style = "Max")
+
+
+
+
+f1_sim_6 <- f1_sim_10 %>% bind_rows(f1_sim_5)
+
+
+
+
+
+
+ggplot(f1_sim_6, aes(x = recs, y = tott, col = style)) + geom_point() + 
+                                                            ylim(6500, 6700)
+ 
+
+
+
+min_t <- f1_sim_6 %>% group_by(style) %>% 
+                          slice(which.min(tott)) %>% 
+                            mutate(tottm = tott/60)
+
+
+
+ggplot(min_t, aes(x = reorder(style, tottm), y = tottm, fill = style)) + geom_point() + 
+                                                                                coord_flip() +
+                                                                          # scale_fill_manual(values = cols) +
+                                                labs(x = "Tyre", y = "Total Race Time (min)", title = "Formula 1 Tyre Race Time") +
+                                                                    theme(panel.background = element_rect(fill = "#c9c9c9"), panel.grid.minor =  element_blank(), panel.grid.major = element_line(colour = "#9c9a9a"))
+
+
+
+
+
+colnames(min_t)[2] <- "mint"
+
+
+f1_sim_11 <- f1_sim_6 %>% left_join(min_t, by = "style") %>%
+                                mutate(delta = tott - mint) %>%
+                                  mutate(fil = if_else(delta < 4, 1,0)) %>%
+                                      filter(fil == 1)
+
+
+ggplot(f1_sim_11, aes(x = recs.x, y = style, col = style)) + geom_point() + 
+                                                                     
+                                                            xlim(0, 70) + 
+                                                            #  scale_color_manual(values = cols) + 
+                                                                  guides(colour = guide_legend(title = "Strategy")) + 
+                                                              labs(x = "Lap", y = "Strategy", title = "Formula 1 Strategy Pit Windows") +
+                                     theme(panel.background = element_rect(fill = "#c9c9c9"), panel.grid.minor =  element_blank(), panel.grid.major = element_line(colour = "#9c9a9a"))
+
+
+
+
+````
+
+```{r}
+
+
+f1_stint2 <- f1_sim_s %>% mutate(stopl = laps) %>%
+                            mutate(newt = "medium", newt2 = "soft") 
+
+colnames(f1_stint2)[1] <- "recs"
+colnames(f1_stint2)[5] <- "laps"
+colnames(f1_stint2)[6] <- "ntyre"
+colnames(f1_stint2)[7] <- "ntyre2"
+
+
+
+f1_sim_4 <- recs3 %>% left_join(f1_stint2, by = c("recs", "laps")) %>%
+                                   group_by(recs) %>%
+                              fill(ntyre, .direction = "down") 
+
+
+
+recs <- 1:169050
+
+
+recs4 <- tibble(recs)
+
+f1_sim_s2 <- f1_sim2 %>% filter(tyre == "soft") %>%
+                              mutate(n = 70) %>%
+                                uncount(n)
+
+
+recs5 <- recs4 %>% left_join(f1_sim_s2, by = character()) %>%
+                        filter(recs < 71)
+
+
+
+```
+
+
+```{r}
+
+
+ter <- 1:70 # creaing the table with the laps 
+
+
+ter2 <- tibble(ter) #creating a dataframe
+
+
+## creating all the pitstop lapoptions 
+
+ter3 <- ter2 %>% mutate(stp2 = 70 - ter) %>%
+                  mutate(stp3 = 70 - ter) %>%
+                    uncount(stp2) %>%
+                      mutate(rec = 1:n()) %>%
+                      group_by(ter) %>%
+                      mutate(n = 1:n()) %>%
+                      mutate(stop2 = ter + n) %>%
+                      ungroup() %>%
+                        filter(ter > 1 ) %>%
+                        mutate(strt = 1:n())  %>%
+                        select(strt, ter, stop2) 
+
+colnames(ter3)[2] <- "stop1"
+                                
+
+
+
+ter4 <- ter3 %>% pivot_longer(cols = 2:3, names_to = "stop", values_to = "lap")
+
+
+ter5 <- 1:2346
+
+
+ter6 <- tibble(ter5)
+
+# uncounting all the options so they have the full 70 laps 
+ter7 <- ter6 %>% mutate(n = 70) %>%
+                   uncount(n) %>%
+                     group_by(ter5) %>%
+                      mutate(lap = 1:n())
+
+
+colnames(ter7)[1] <- "strt"
+
+
+##calculating the total time for each scenario 
+
+ter8 <- ter7 %>% left_join(ter4, by = c("lap", "strt")) %>%
+                                                mutate(strat = if_else(lap == 1, "start", stop)) %>%
+                                                 mutate(lap_tyre = if_else(strat == "start", "soft", if_else(strat == "stop1", "soft", "medium"))) %>%
+                                                 group_by(strt) %>%
+                                                fill(lap_tyre, .direction = "down") %>%
+                                                  fill(strat, .direction = "down") %>%
+                                                 mutate(startl = 95)  %>%
+                                                 ungroup() %>%
+                                                  group_by(strt, strat) %>%
+                                                  mutate(stintl = 1:n()) %>%
+                                                   left_join(tyre_stats, by = "lap_tyre") %>%
+                                                  mutate(deg = dr * (1 + dc)^(stintl-1)) %>%
+                                                   mutate(lapt = (startl - (0.06*(lap-1))) + ds + deg) %>%
+                                                    ungroup() %>%
+                                                   group_by(strt) %>%
+                                                    summarise(tott = sum(lapt))
+
+ 
+````
+
+
+
+```{r}
+
+
+
+#filtering the fastest race 
+ter9 <- ter7 %>% left_join(ter4, by = c("lap", "strt")) %>%
+                                                mutate(strat = if_else(lap == 1, "start", stop)) %>%
+                                                 mutate(lap_tyre = if_else(strat == "start", "soft", if_else(strat == "stop1", "soft", "medium"))) %>%
+                                                 group_by(strt) %>%
+                                                fill(lap_tyre, .direction = "down") %>%
+                                                  fill(strat, .direction = "down") %>%
+                                                 mutate(startl = 95)  %>%
+                                                 ungroup() %>%
+                                                  group_by(strt, strat) %>%
+                                                  mutate(stintl = 1:n()) %>%
+                                                   left_join(tyre_stats, by = "lap_tyre") %>%
+                                                  mutate(deg = dr * (1 + dc)^(stintl-1)) %>%
+                                                   mutate(lapt = (startl - (0.06*(lap-1))) + ds + deg) %>%
+                                                    ungroup() %>%
+                                                    filter(strt == 1191) %>%
+                                                    select(lap, stop, lap_tyre, lapt) %>%
+                                                    mutate(lap2 = if_else(is.na(stop), lapt, lapt+25))
+
+
+
+
+````
+
+
+
+```{r}
+
+
+best_one <- recs3 %>% left_join(f1_stint, by = c("recs", "laps")) %>%
+                            group_by(recs) %>%
+                              fill(ntyre, .direction = "down") %>% 
+                                mutate(lap_tyre = if_else(is.na(ntyre), tyre.x, ntyre)) %>%
+                                  group_by(recs, lap_tyre) %>%
+                                      mutate(tyre_age = 1:n()) %>%
+                                        left_join(tyre_stats, by = "lap_tyre") %>%
+                                             mutate(deg = dr * (1 + dc)^(tyre_age-1)) %>%
+                          mutate(dl = lapt+deg+ds) %>%
+                              ungroup()  %>%
+                                        filter(recs == 29) %>%
+                                mutate(lap_one = if_else(is.na(tyre.y), dl, dl+25)) %>%
+                                        select(laps, lap_one)
+
+colnames(best_one)[1] <- "lap"
+
+
+strat_comp <- ter9 %>% left_join(best_one, by = "lap") %>%
+                          mutate(delta = lap2- lap_one) %>%
+                           mutate(cumdiff = cumsum(delta))
+
+
+ggplot(strat_comp, aes(x = lap, y = cumdiff)) + geom_line(col = "#6d009c", size = 2) +
+                                                        labs(x = "Lap", y = "Gap (s)", title = "Gap Between 1 and 2 Stop Strategy") +
+                         theme(panel.background = element_rect(fill = "#c9c9c9"), panel.grid.minor =  element_blank(), panel.grid.major = element_line(colour = "#9c9a9a"))
+
+
+```
+
+
+```{r}
+
+
+best_one2 <- recs3 %>% left_join(f1_stint, by = c("recs", "laps")) %>%
+                            group_by(recs) %>%
+                              fill(ntyre, .direction = "down") %>% 
+                                mutate(lap_tyre = if_else(is.na(ntyre), tyre.x, ntyre)) %>%
+                                  group_by(recs, lap_tyre) %>%
+                                      mutate(tyre_age = 1:n()) %>%
+                                        left_join(tyre_stats, by = "lap_tyre") %>%
+                                             mutate(deg = dr * (1 + dc)^(tyre_age-1)) %>%
+                          mutate(dl = lapt+deg+ds) %>%
+                              ungroup()  %>%
+                                        filter(recs == 29) %>%
+                                mutate(lap_one = if_else(is.na(tyre.y), dl, dl+25)) %>%
+                                        select(laps, lap_one, lap_tyre) %>%
+                                        mutate(strategy = "1 Stop")
+
+colnames(best_one2)[1] <- "lap"
+colnames(best_one2)[2] <- "lap2"
+
+
+
+
+ter10 <- ter7 %>% left_join(ter4, by = c("lap", "strt")) %>%
+                                                mutate(strat = if_else(lap == 1, "start", stop)) %>%
+                                                 mutate(lap_tyre = if_else(strat == "start", "soft", if_else(strat == "stop1", "soft", "medium"))) %>%
+                                                 group_by(strt) %>%
+                                                fill(lap_tyre, .direction = "down") %>%
+                                                  fill(strat, .direction = "down") %>%
+                                                 mutate(startl = 95)  %>%
+                                                 ungroup() %>%
+                                                  group_by(strt, strat) %>%
+                                                  mutate(stintl = 1:n()) %>%
+                                                   left_join(tyre_stats, by = "lap_tyre") %>%
+                                                  mutate(deg = dr * (1 + dc)^(stintl-1)) %>%
+                                                   mutate(lapt = (startl - (0.06*(lap-1))) + ds + deg) %>%
+                                                    ungroup() %>%
+                                                    filter(strt == 1191) %>%
+                                                    select(lap, stop, lap_tyre, lapt) %>%
+                                                    mutate(lap2 = if_else(is.na(stop), lapt, lapt+25)) %>%
+                                                     mutate(strategy = "2 Stop") %>%
+                                                        select(lap, lap_tyre, lap2, strategy)                                
+
+
+
+
+all_dat <- ter10 %>% bind_rows(best_one2)
+
+
+ggplot(all_dat, aes(x = lap, y = lap2, col = strategy , shape = lap_tyre)) + geom_point() 
+
+
+```
+
+

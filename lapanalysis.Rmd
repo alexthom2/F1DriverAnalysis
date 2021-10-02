@@ -1,0 +1,334 @@
+---
+title: "telemetry"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+library(tidyverse)
+library(readxl)
+library(lubridate)
+
+```
+
+
+```{r}
+
+setwd("~/Projects/F1/telemetry")
+
+nor <- read_xlsx("nor.xlsx")
+
+
+nor2 <- read_csv("nor.csv")
+
+lec <- read_xlsx("lectel3.xlsx")
+
+circuit <- read_xlsx("circuit.xlsx")
+
+````
+
+
+
+```{r}
+
+
+
+ggplot(nor, aes(x = Time, y = Speed)) + geom_line()
+ 
+
+
+```
+
+
+
+
+```{r}
+
+
+nor1 <- nor %>% mutate(dri = "Nor")
+
+lec1 <- lec %>% mutate(dri = "lec")
+
+teldat <- nor1 %>% bind_rows(lec1)
+
+
+```
+
+
+
+```{r}
+
+ggplot(teldat, aes(x = Time, y = Speed, col = dri)) + geom_line()
+
+
+```
+
+
+```{r}
+
+teldat2 <- teldat %>% group_by(dri) %>%
+                          mutate(timeconv = (Time * 86400000)/1000) %>%
+                            mutate(lagt = lag(timeconv)) %>%
+                              mutate(delta = timeconv - lagt) %>%
+                              mutate(dist = delta * (Speed/60/60)) %>%
+                              mutate(dist2 = if_else(is.na(dist), 0,dist)) %>%
+                              mutate(cumdis = cumsum(dist2)) %>%
+                              mutate(cumtim = cumsum(timeconv))
+
+
+
+ggplot(teldat2, aes(x = cumdis, y = timeconv, col = dri)) + geom_line()
+
+
+
+```
+
+
+```{r}
+
+
+
+ggplot(teldat2, aes(x = cumdis, y = Speed, col = dri)) + geom_line()
+
+
+
+
+```
+
+
+```{r}
+
+teldat3 <- teldat2 %>% mutate(Dist = round(cumdis * 1000),0) %>%
+                          left_join(circuit, by = "Dist")
+
+ nortel2 <- teldat3 %>% filter(dri == "Nor")
+
+ggplot(nortel2, aes(x = cumdis, y = Speed, col = Section)) + geom_point()
+
+```
+
+
+```{r}
+
+teldat4 <- teldat3 %>% group_by(dri, Section) %>%
+                              summarise(tot = sum(delta)) %>%
+                              filter(Section != "Straight")
+
+
+ggplot(teldat4, aes(x = Section, y = tot, col = dri)) + geom_point()
+
+
+
+```
+
+
+
+
+
+```{r}
+
+
+norrace <- read_xlsx("norrace.xlsx")
+
+
+
+norrace2 <- norrace %>% 
+                          mutate(timeconv = (Time * 86400000)/1000) %>%
+                            mutate(lagt = lag(timeconv)) %>%
+                              mutate(delta = timeconv - lagt) %>%
+                              mutate(dist = delta * (Speed/60/60)) %>%
+                              mutate(dist2 = if_else(is.na(dist), 0,dist)) %>%
+                              mutate(cumdis = cumsum(dist2)) %>%
+                              mutate(cumtim = cumsum(timeconv)) %>%
+                              mutate(laps = ceiling(cumdis/3.2816)) %>%
+                                group_by(laps) %>%
+                                   mutate(cumdis2 = cumsum(dist2)) 
+
+
+ggplot(norrace2, aes(x = cumdis2, y = Speed, col = laps)) + geom_point(alpha = 0.1)
+
+
+
+
+````
+
+
+
+```{r}
+
+
+lec_spain <- read_xlsx("lecspain.xlsx")
+
+sai_spain <- read_xlsx("saispain.xlsx")
+
+
+bot_spain <- read_xlsx("botspain.xlsx")
+
+ham_spain <- read_xlsx("hamspain.xlsx")
+
+
+ver_spain <- read_xlsx("verspain.xlsx")
+
+per_spain <- read_xlsx("perspain.xlsx")
+
+
+
+nor_spain <- read_xlsx("norspain.xlsx")
+
+ric_spain <- read_xlsx("ricspain.xlsx")
+
+
+```
+
+
+```{r}
+
+spain <- circuit %>% filter(Circuit == "Spain")
+
+
+bot_spain2 <- bot_spain %>% mutate(dri = "BOT")
+
+
+
+ham_spain2 <- ham_spain %>% mutate(dri = "HAM")
+
+
+
+ver_spain2 <- ver_spain %>% mutate(dri = "VER")
+
+
+
+per_spain2 <- per_spain %>% mutate(dri = "PER")
+
+
+
+lec_spain2 <- lec_spain %>% mutate(dri = "LEC")
+
+
+
+sai_spain2 <- sai_spain %>% mutate(dri = "SAI")
+
+
+
+nor_spain2 <- nor_spain %>% mutate(dri = "NOR")
+
+
+
+ric_spain2 <- ric_spain %>% mutate(dri = "RIC")
+
+
+
+```
+
+```{r}
+
+
+
+SPAIN_Q <-bot_spain2 %>% bind_rows(ham_spain2) %>%
+                          bind_rows(ver_spain2) %>%
+                            bind_rows(per_spain2) %>%
+                            bind_rows(sai_spain2) %>%
+                            bind_rows(lec_spain2) %>%
+                              bind_rows(nor_spain2) %>%
+                            bind_rows(ric_spain2) %>%
+                     group_by(dri) %>%
+                          mutate(timeconv = (Time * 86400000)/1000) %>%
+                            mutate(lagt = lag(timeconv)) %>%
+                              mutate(delta = timeconv - lagt) %>%
+                              mutate(dist = delta * (Speed/60/60)) %>%
+                              mutate(dist2 = if_else(is.na(dist), 0,dist)) %>%
+                              mutate(cumdis = cumsum(dist2)) %>%
+                              mutate(cumtim = cumsum(timeconv)) %>%
+                              mutate(Dist = round(cumdis * 1000),0) %>%
+                              left_join(spain, by = "Dist")
+
+
+
+
+ggplot(SPAIN_Q, aes(x = Dist, y = Speed, col = dri)) + geom_line()
+
+
+
+
+
+
+
+
+````
+
+```{R}
+
+
+
+
+SPAIN_Q <-bot_spain2 %>% bind_rows(ham_spain2) %>%
+                          bind_rows(ver_spain2) %>%
+                            bind_rows(per_spain2) %>%
+                            bind_rows(sai_spain2) %>%
+                            bind_rows(lec_spain2) %>%
+                              bind_rows(nor_spain2) %>%
+                            bind_rows(ric_spain2) %>%
+                     group_by(dri) %>%
+                          mutate(timeconv = (Time * 86400000)/1000) %>%
+                            mutate(lagt = lag(timeconv)) %>%
+                              mutate(delta = timeconv - lagt) %>%
+                              mutate(dist = delta * (Speed/60/60)) %>%
+                              mutate(dist2 = if_else(is.na(dist), 0,dist)) %>%
+                              mutate(cumdis = cumsum(dist2)) %>%
+                              mutate(cumtim = cumsum(timeconv)) %>%
+                              mutate(Dist = round(cumdis * 1000),0) %>%
+                              left_join(spain, by = "Dist") %>%
+                                group_by(dri, Section) %>%
+                              summarise(tot = sum(delta))
+
+#%>%
+ #                             filter(Section != "Straight")
+#
+
+
+
+
+ggplot(SPAIN_Q, aes(x = Section, y = tot, col = dri)) + geom_point()
+
+
+
+```
+
+
+
+
+```{r}
+
+
+spainqmin <- SPAIN_Q %>% ungroup() %>%
+                            group_by(Section) %>%
+                               slice(which.min(tot)) %>%
+                                select(Section, tot)
+
+
+colnames(spainqmin)[2] <- "min"
+
+
+SPAIN_Q2 <- SPAIN_Q %>% left_join(spainqmin, by = "Section") %>%
+                            mutate(delta= tot - min)
+
+
+cols <- c("SAI" = "#de1a04", "LEC" = "#de1a04" , "VER" = "#300059", "PER" = "#300059", "BOT" = "#43e69f", "HAM" = "#43e69f", "NOR" = "#fa9d2a", "RIC" = "#fa9d2a")
+
+
+ggplot(SPAIN_Q2, aes(x = Section, y = delta, col = dri)) + geom_point() +
+                                                scale_color_manual(values = cols)
+
+
+````
+
+
+
+
+
+

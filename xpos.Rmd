@@ -214,7 +214,7 @@ posg <- all_data2 %>% left_join(retiretot, by = "raceId") %>%
 gridadj1 <- posg %>% group_by(gridadj) %>%
                             summarise(meanp = mean(position, na.rm = T))
 
-ggplot(gridadj, aes(x = gridadj, y = meanp)) + geom_point()
+ggplot(gridadj1, aes(x = gridadj, y = meanp)) + geom_point()
 
 ```
 
@@ -370,6 +370,23 @@ qualbest2<- qualbest %>% mutate(qualt = m * 60 + s) %>%
 
 
 ```
+
+
+
+```{r}
+
+qualbest3 <- qualbest2 %>% filter(year > 2010)
+ 
+ggplot(qualbest3, aes(x = year, y = mean_del, col = name.y)) + geom_point() +
+                                                              guides(color = F)
+
+
+
+
+
+````
+
+
 ```{r}
 
 
@@ -386,14 +403,22 @@ totpoint <- all_data2 %>% filter(year > 1990) %>%
 
 ```{r}
 
+library(scales)
+
 point_co <- totpoint %>% left_join(qualbest2, by = c("name.y", "year")) %>%
                             left_join(maxavpos, by = c("name.y", "year"))
 
 
-ggplot(point_co, aes(x = mean_del, y = tp)) + geom_point()
+ggplot(point_co, aes(x = mean_del, y = tp)) + geom_point() +
+                               geom_point(col = "#1c8c54") + 
+        labs(x = "Difference to Pole", y = "Total Season Points", title = "Difference to Pole shows Same patern as Average grid Position") +
+                                scale_x_continuous(labels = percent_format()) +
+                                    theme(panel.background = element_rect(fill = "#a3a3a3"), panel.grid = element_blank(), plot.background  = element_rect(fill = "#a3a3a3"))
 
 
-ggplot(point_co, aes(x = meanp, y = tp)) + geom_point()
+ggplot(point_co, aes(x = meanp, y = tp)) + geom_point(col = "#9800c7") + 
+                                      labs(x = "Average Grid Position", y = "Total Season Points", title = "Grid Position is Closely Correlated to Points") +
+                                    theme(panel.background = element_rect(fill = "#a3a3a3"), panel.grid = element_blank(), plot.background  = element_rect(fill = "#a3a3a3"))
 
 ````
 ```{r}
@@ -408,7 +433,8 @@ ggplot(point_co, aes(x = meanp, y = tp)) + geom_point()
 ```{r}
 
 
-all_data3 <- all_data2 %>% left_join(maxavpos, by = c("year", "constructorRef")) %>%
+all_data3 <- all_data2 %>% left_join(maxavpos, by = c("year", "name.y")) %>%
+                            left_join(qualbest2, by = c("year", "name.y")) %>%
                               left_join(circuits, by = "circuitId") %>%
                                left_join(pointdat, by = "position") %>%
                                   left_join(retiretot, by = "raceId") %>%
@@ -457,7 +483,7 @@ f1_rand <-
 ```{r}
 
 
-r1 <- all_data2 %>% left_join(maxavpos, by = c("year", "constructorRef")) %>%
+r1 <- all_data2 %>% left_join(maxavpos, by = c("year", "name.y")) %>%
                               left_join(circuits, by = "circuitId") %>%
                                left_join(pointdat, by = "position") %>%
                                   left_join(retiretot, by = "raceId") %>%
@@ -465,7 +491,7 @@ r1 <- all_data2 %>% left_join(maxavpos, by = c("year", "constructorRef")) %>%
                                       mutate(grid2 = if_else(grid ==0, 20,grid)) %>%
                                         select(-grid) 
 
-colnames(r1)[55] <- "grid"
+colnames(r1)[54] <- "grid"
 
 
 predictions <- predict(f1_rand, new_data = r1)
@@ -487,7 +513,7 @@ r1b <- r1 %>% bind_cols(predictions) %>%
 
 ```{r}
 
-alldri <- all_data2 %>% left_join(maxavpos, by = c("year", "constructorRef")) %>%
+alldri <- all_data2 %>% left_join(maxavpos, by = c("year", "name.y")) %>%
                               left_join(circuits, by = "circuitId") %>%
                                left_join(pointdat, by = "position") %>%
                                   left_join(retiretot, by = "raceId") %>%
@@ -626,7 +652,7 @@ predictions2 <- predict(f1_rand2, new_data = r1)
 
 r1b <- r1 %>% bind_cols(predictions1) %>% 
                 bind_cols(predictions2) %>% 
-                    select(grid, raceId, position, code, year, status, points.y, meanp, ret2, Type,.pred...56,.pred...57 )
+                    select(grid, raceId, position, code, year, status, points.y, meanp, ret2, Type,.pred...55,.pred...56 )
 
 
 
@@ -635,7 +661,7 @@ r1b <- r1 %>% bind_cols(predictions1) %>%
 
 ```{r}
  
-r1c <- r1b %>% rename(mod1 = .pred...56, mod2=  .pred...57, actp = points.y) %>%
+r1c <- r1b %>% rename(mod1 = .pred...55, mod2=  .pred...56, actp = points.y) %>%
                               pivot_longer(cols = c("mod1", "mod2", "actp"), names_to = "meas", values_to = "val")
 
 
@@ -661,8 +687,8 @@ predictions4 <- predict(f1_rand2, new_data = alldri)
 alldri4 <- alldri %>% bind_cols(predictions3) %>%
                        bind_cols(predictions4) %>%
                            filter(code == "NOR") %>%
-               select(grid, position, code,raceno, year, status, points.y, meanp, ret2, Type ,.pred...56, .pred...57 ) %>%
-                          rename(mod1 = .pred...56, mod2=  .pred...57, actp = points.y) %>%
+               select(grid, position, code,raceno, year, status, points.y, meanp, ret2, Type ,.pred...55, .pred...56 ) %>%
+                          rename(mod1 = .pred...55, mod2=  .pred...56, actp = points.y) %>%
                           mutate(delta1 = actp - mod1, delta2 = actp - mod2) %>%
                               select(raceno, delta1, delta2) %>%
                                   pivot_longer(cols = 2:3, names_to = "mod", values_to = "val")
@@ -684,11 +710,13 @@ ggplot(alldri4, aes(x = raceno, y = val, col= mod)) + geom_line()
 
 
 totp <-   r1b %>% group_by(code) %>%
+                        filter(!is.na(points.y)) %>%
                           summarise(tp = sum(points.y, na.rm = T), totexp = sum(.pred...56)) %>%
                               select(code,tp)
 
 
 tttt <- r1b %>% group_by(code) %>%
+                             filter(!is.na(points.y)) %>%
                           summarise(totp = sum(points.y, na.rm = T), totexp = sum(.pred...56)) 
 
 
@@ -698,9 +726,9 @@ plot1 <- r1b %>% group_by(code) %>%
                                       left_join(totp, by = "code") %>%
                                           left_join(tttt, by = "code") %>%
                                             mutate(delta = tp - totexp) %>%
-                                              mutate(colca = if_else(delta < 0, "neg", "pos"))
+                                              mutate(colca = if_else(delta < 0, "Below", "Above"))
                                                   
-cols <- c("neg" = "#9800c7", "pos" = "#fac000")
+cols <- c("Below" = "#9800c7", "Above" = "#fac000")
 
 
 ggplot(plot1, aes(x = reorder(code,tp), y = val)) + geom_point(aes(),size =5, col = "white") +
@@ -708,7 +736,97 @@ ggplot(plot1, aes(x = reorder(code,tp), y = val)) + geom_point(aes(),size =5, co
                                                     coord_flip() +
                                               labs(x = "", y = "points", title = "Season 2021 Expected Points by Driver", subtitle = "Yellow Driver is performing above Expected, Purple below") +
                                     scale_colour_manual(values = cols) +
+                                        guides(colour = guide_legend(title = "vs Exp")) +
                                                         theme(panel.background = element_blank())
+
+ggsave("xps.png", last_plot())
+
+```
+
+```{r}
+
+
+r1b2 <- r1b %>% mutate(delta = points.y-.pred...56) %>%
+                    mutate(cat = if_else(delta > 0, "pos", "neg")) %>%
+                          left_join(races, by = "raceId")
+
+                                              
+col2 <- c("neg" = "#9800c7", "pos" = "#fac000")
+
+
+
+ggplot(r1b2, aes(x = as.factor(round), y = delta, fill = cat)) + geom_col(col = "white") + 
+                                facet_wrap(~code, scales = "free_y") +
+                                  scale_fill_manual(values = col2) +
+                     labs(x = "Round", y = "Delta vs Exp", title = "By Round Driver Performance") +
+                                      guides(fill = guide_legend(title = "vs Exp")) +
+                                           theme(panel.background = element_blank()) 
+
+                                                       theme(panel.background = element_blank())
+
+ggsave("xps2.png", last_plot())
+
+````
+
+
+
+```{r}
+
+
+
+
+alldri_sum <- alldri %>%  bind_cols(predictions4) %>%
+                            mutate(delta = points.y-.pred) %>%
+                              group_by(code) %>%
+                                summarise(meanp = mean(delta))
+
+
+
+
+
+```
+
+
+
+
+```{r}
+
+nor <- alldri %>%  bind_cols(predictions4) %>%
+                            mutate(delta = points.y-.pred) %>%
+                      filter(code == "NOR")
+
+
+
+ggplot(nor, aes(x = raceno, y = delta)) + geom_point() + geom_smooth(method = "lm")
+
+
+```
+
+
+
+
+```{r}
+
+age_eff <- alldri %>%  bind_cols(predictions4) %>%
+                            mutate(delta = points.y-.pred) %>%
+                          mutate(age = round((date.y - dob)/365),0)
+
+
+ggplot(age_eff, aes(x = age, y = delta, group = age)) + geom_jitter()
+
+
+```
+
+
+
+
+
+```{r}
+
+totpoints <- alldri %>% group_by(code, year) %>%
+                            summarise()
+
+
 
 
 ```

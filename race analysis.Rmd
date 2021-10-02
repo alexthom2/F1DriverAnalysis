@@ -61,6 +61,7 @@ tyreuse <- read_csv("F1 Tyre Usage.csv")
 
 
 ```
+
 ```{r}
 
 
@@ -83,9 +84,9 @@ colnames(lapcount)[2] <- "tlap"
 lando <- laptimes %>% left_join(races, by = "raceId") %>%
                                 left_join(drivers, by = "driverId") %>%
                         left_join(pits, by = c("raceId", "lap", "driverId")) %>%
-                            filter(name == "Bahrain Grand Prix") %>%
+                            filter(name == "Styrian Grand Prix") %>%
                               filter(year > 2020) %>%
-                                filter(code %in% c("NOR")) %>%
+                                filter(code %in% c("HAM")) %>%
                                   mutate(seconds = milliseconds.x / 1000) %>%
                                       group_by(year) %>%
                                       fill(stop) %>%
@@ -94,7 +95,8 @@ lando <- laptimes %>% left_join(races, by = "raceId") %>%
                                         mutate(stopfl = if_else(!is.na(duration),1 ,
                                                           if_else(!is.na(lugdur), 1, 2))) %>%
                                           filter(stopfl == 2) %>%
-                                              filter(seconds < 100)
+                                              filter(seconds < 74) %>%
+                                                select(lap, seconds, year, stint)
 
 
 ggplot(lando, aes(x = lap, y = seconds, col = as.factor(year))) + 
@@ -105,8 +107,138 @@ ggplot(lando, aes(x = lap, y = seconds, col = as.factor(year))) +
 
 ```
 
+```{R}
 
 
+
+lando2 <- laptimes %>% left_join(races, by = "raceId") %>%
+                                left_join(drivers, by = "driverId") %>%
+                        left_join(pits, by = c("raceId", "lap", "driverId")) %>%
+                            filter(name == "Austrian Grand Prix") %>%
+                              filter(year > 2020) %>%
+                                filter(code %in% c("HAM")) %>%
+                                  mutate(seconds = milliseconds.x / 1000) %>%
+                                      group_by(year) %>%
+                                      fill(stop) %>%
+                                      mutate(stint = if_else(is.na(stop),1, 1 + stop)) %>%
+                                      mutate(lugdur = lag(duration)) %>%
+                                        mutate(stopfl = if_else(!is.na(duration),1 ,
+                                                          if_else(!is.na(lugdur), 1, 2))) %>%
+                                          filter(stopfl == 2) %>%
+                                              filter(seconds < 74) %>%
+                                              select(lap, seconds, year, stint)
+
+
+ggplot(lando2, aes(x = lap, y = seconds, col = as.factor(year))) + 
+                                        geom_point() +  geom_smooth(method = "lm", se = F) +
+                                          facet_wrap(~stint, scales = "free_x")
+
+
+
+
+
+
+
+
+
+```
+```{r}
+
+
+colnames(lando)[2] <- "Styria_lt"
+
+colnames(lando2)[2] <- "Austria_lt" 
+
+
+
+lan_com <- lando %>% left_join(lando2, by = "lap") %>%
+                        select(lap, Styria_lt, Austria_lt) %>%
+                            pivot_longer(cols = 2:3, names_to = "race", values_to = "lt")
+
+
+
+ggplot(lan_com, aes(x = lap, y = lt, col = race)) + geom_point()
+
+
+
+```
+
+```{r}
+
+
+
+
+lan_com2 <- lan_com %>% mutate(fuelds = (71-(lap+1)) * 0.06) %>%
+                            mutate(ltfuel = lt-fuelds)
+
+
+
+ggplot(lan_com2, aes(x = lap, y = ltfuel, col = race)) + 
+                                        geom_point()  
+
+````
+
+```{r}
+
+
+
+
+land3_2 <- lando2 %>%    filter(lap > 4) %>%
+                        mutate(fuelds = (71-(lap+1)) * 0.06) %>%
+                            mutate(ltfuel = Austria_lt-fuelds) %>%
+                         group_by(stint) %>%
+                          slice(which.min(lap))
+
+colnames(land3_2)[2] <- "minlt"
+colnames(land3_2)[6] <- "minflt"
+
+
+
+land3_3 <- lando2 %>% left_join(land3_2, by = c("stint")) %>%
+                          mutate(fuelds = (71-(lap.x+1)) * 0.06) %>%
+                            mutate(ltfuel2 = Austria_lt-fuelds) %>%
+                              mutate(delta = ltfuel2-minflt)
+
+
+
+land_cum <- land3_3 %>% group_by(stint) %>%
+                            mutate(closs = cumsum(delta), stinl = 1:n())
+
+
+ggplot(land_cum, aes(x = stinl, y = closs, col = as.factor(stint))) + geom_point(se = F)
+
+````
+
+```{r}
+
+
+ggplot(land3_3, aes(x = lap.x, y = ltfuel2)) + geom_point()
+ 
+
+
+```
+
+
+```{R}
+
+
+land2 <- lando %>% mutate(laple = 70-(lap-1)) %>%
+                    mutate(fuelcorr = seconds - (laple * 0.06)) %>%
+                      group_by(stint) %>%
+                        mutate(stintl = 1:n()) %>%
+                         
+
+
+
+
+ggplot(land2, aes(x = stintl, y = fuelcorr, col = as.factor(stint))) + 
+                                                        geom_point() + 
+                                                      geom_smooth(method = "lm", se =F)
+
+
+
+
+```
 
 
 
@@ -119,9 +251,9 @@ verham <- laptimes %>% left_join(races, by = "raceId") %>%
                                 left_join(drivers, by = "driverId") %>%
                         left_join(pits, by = c("raceId", "lap", "driverId")) %>%
                           
-                            filter(name == "Bahrain Grand Prix") %>%
+                            filter(name == "Styrian Grand Prix") %>%
                               filter(year > 2020) %>%
-                                filter(code %in% c("HAM", "VER")) %>%
+                                filter(code %in% c("NOR", "SAI")) %>%
                                   mutate(seconds = milliseconds.x / 1000) %>%
                                       group_by(code) %>%
                                       fill(stop) %>%
@@ -130,12 +262,12 @@ verham <- laptimes %>% left_join(races, by = "raceId") %>%
                                         mutate(stopfl = if_else(!is.na(duration),1 ,
                                                           if_else(!is.na(lugdur), 1, 2))) %>%
                                           filter(stopfl == 2) %>%
-                                              filter(seconds < 100) %>%
+                                              filter(seconds < 105) %>%
                                                 filter(stint < 4)
 
 
 ggplot(verham, aes(x = lap, y = seconds, col = as.factor(code))) + 
-                                        geom_point() +  geom_smooth(method = "lm", se = F) +
+                                        geom_point() +  geom_smooth( se = F) +
                                           facet_wrap(~stint, scales = "free_x")
 
 
@@ -186,7 +318,7 @@ verham2 <- laptimes %>% left_join(races, by = "raceId") %>%
                                 left_join(drivers, by = "driverId") %>%
                         left_join(pits, by = c("raceId", "lap", "driverId")) %>%
                             left_join(lapcount, by = "raceId") %>%
-                            filter(name == "Bahrain Grand Prix") %>%
+                            filter(name == "French Grand Prix") %>%
                               filter(year > 2020) %>%
                                 filter(code %in% c("HAM", "VER")) %>%
                                   mutate(seconds = milliseconds.x / 1000) %>%
@@ -412,6 +544,25 @@ ggplot(lapfil_test, aes(x = delta)) + geom_histogram(binwidth = 0.01)
 
 ```
 
+```{r}
+
+
+medlap <- laptimes %>%  mutate(seconds = milliseconds / 1000) %>%
+                           group_by(raceId) %>%
+                              summarise(ml = median(seconds))
+
+
+medlap2 <- laptimes %>% left_join(medlap, by = "raceId") %>%
+                                     mutate(seconds = milliseconds / 1000) %>%
+                                        mutate(delta = seconds - ml) %>%
+                                          filter(raceId > 1029) %>%
+                                              filter(delta <100)
+
+
+ggplot(medlap2, aes(x = delta)) + geom_histogram(binwidth = 1)
+
+
+```
 
 
 
@@ -641,24 +792,26 @@ all_stints_f <- laptimes %>% left_join(races, by = "raceId") %>%
                         left_join(pits, by = c("raceId", "lap", "driverId")) %>%
                                left_join(lapcount, by = "raceId") %>%
                               filter(year > 2019) %>%
-                                  fill(stop) %>%
+                                  group_by(raceId, code) %>%
+                                  fill(stop, .direction = c("down")) %>%
                                   mutate(seconds = milliseconds.x / 1000) %>% 
                                      mutate(fueladj = (seconds-(((tlap-lap)+1) * 0.06))) %>%
-                                  
+                                     
                                       mutate(stint = if_else(is.na(stop),1, 1 + stop)) %>%
                                       mutate(lugdur = lag(duration)) %>%
                                         mutate(stopfl = if_else(!is.na(duration),1 ,
                                                           if_else(!is.na(lugdur), 1, 2))) %>%
-                                            left_join(qualbest2, by = "circuitId") %>% 
-                                              
-                                              mutate(delta = seconds/qualt-1) %>%
-                                                   filter(delta < 0.25) %>%
+                                              ungroup() %>%
+                                            left_join(medlap, by = "raceId") %>% 
+                                              filter(is.na(time)) %>%
+                                              mutate(delta = seconds-ml) %>%
+                                                   filter(delta < 5) %>%
                                                     group_by(stint) %>%
                                                         mutate(stintlp = 1:n()) %>%
                                                   ungroup() %>%
-                                                    group_by(stint,raceId.x, code) %>%
+                                                    group_by(stint,raceId, code) %>%
                                                         mutate(stintlp = 1:n())  %>%
-                                                          select(raceId.x, driverId.x,lap,year.x, round.x, name, code,stop, tlap,seconds, fueladj,stint)
+                                                          select(raceId, driverId,lap,year, round, name, code,stop, tlap,seconds, fueladj,stint)
     
 
 
@@ -667,14 +820,28 @@ all_stints_f <- laptimes %>% left_join(races, by = "raceId") %>%
 ```
 
 
+```{r}
+
+test <- all_stints_f %>% filter(code == "NOR") %>%
+                        filter(raceId == 1047)
+
+
+````
+
+```{R}
+
+
+ggplot(test, aes(x = lap, y = fueladj)) + geom_point()
+
+````
 
 
 ```{r}
 
 
-bot_test <- all_stints_f %>%   select(raceId.x, driverId.x,lap,year.x, round.x, name, code,stop, tlap,seconds, fueladj,stint) %>%
-                        filter(code == "LAT") %>%
-                        filter(raceId.x == 1047)
+bot_test <- all_stints_f %>%   select(raceId, driverId,lap,year, round, name, code,stop, tlap,seconds, fueladj,stint) %>%
+                        filter(code == "HAM") %>%
+                        filter(raceId == 1053)
     
 
 
@@ -685,33 +852,353 @@ bot_test <- all_stints_f %>%   select(raceId.x, driverId.x,lap,year.x, round.x, 
 ```{r}
 
 
-alls_min <- all_stints_f %>% group_by(code, stint, raceId.x) %>% 
+alls_min <- all_stints_f %>% group_by(code, stint, raceId) %>% 
                          slice_min(fueladj) %>%
-                            select(code, stint, raceId.x, fueladj)
+                            select(code, stint, raceId, fueladj)
 
 colnames(alls_min)[4] <- "mint"
 
 
-alls_mx <- all_stints_f %>% group_by(code, stint, raceId.x) %>% 
+alls_mx <- all_stints_f %>% group_by(code, stint, raceId) %>% 
                          slice_max(fueladj) %>%
-                            select(code, stint, raceId.x, fueladj)
+                            select(code, stint, raceId, fueladj)
 
 colnames(alls_mx)[4] <- "maxt"
 
 
 
-alls2_sl <- all_stints_f %>% group_by(code, stint, raceId.x) %>% 
+alls2_sl <- all_stints_f %>% group_by(code, stint, raceId) %>% 
                           summarise(n = n())
 
 
-all_stint_loss <- alls_min %>% left_join(alls_mx, by = c("code", "stint", "raceId.x")) %>%
-                            left_join(alls2_sl, by = c("code", "stint", "raceId.x")) %>%
-                              mutate(stintloss = (maxt - mint)/n)
+all_stint_loss <- alls_min %>% left_join(alls_mx, by = c("code", "stint", "raceId")) %>%
+                            left_join(alls2_sl, by = c("code", "stint", "raceId")) %>%
+                              mutate(stintloss = (maxt - mint)/n) %>%
+                                filter(stintloss < 1) %>%
+                                    filter(n > 1)
 
 ggplot(all_stint_loss, aes(x = stintloss)) + geom_histogram(binwidth = 0.01)
 
 
 
 ````
+
+
+
+
+```{r}
+
+
+
+
+ggplot(all_stint_loss, aes(x = code, y = stintloss)) + geom_boxplot() +
+                                                    coord_flip()
+
+
+
+
+````
+
+
+
+
+
+```{r}
+
+
+
+
+ggplot(all_stint_loss, aes(x = n, y = stintloss)) + geom_point() + geom_smooth()
+
+
+
+
+```
+
+```{r}
+
+
+safe1 <- laptimes %>% left_join(races, by = "raceId") %>%
+                         left_join(qualbest2, by = "circuitId") %>%
+                      select(raceId.x, circuitId, lap, position.x, milliseconds, qualt)  %>%
+                        filter(position.x == 1) %>%
+                            mutate(delta = (milliseconds/1000)/qualt) %>%
+                             mutate(lapco = if_else(delta > 1.25, "safety", "norm"))
+
+
+colnames(safe1)[1] <- "raceId"
+
+```
+
+
+
+```{r}
+
+
+drivet <- results %>% left_join(constructors, by = "constructorId") %>%
+                            left_join(races, by = "raceId") %>%
+                                filter(year == 2021) %>%
+                                  filter(raceId == 1059) %>%
+                                      select(driverId, constructorId)
+
+
+
+```
+
+
+```{r}
+
+
+first <- laptimes %>% filter(position == 1) %>%
+                      select(raceId, lap, milliseconds) 
+
+colnames(first)[3] <- "fast"
+
+
+allrace <- laptimes %>% left_join(races, by = "raceId") %>%
+                                left_join(drivers, by = "driverId") %>%
+                        left_join(pits, by = c("raceId", "lap", "driverId")) %>%
+                              filter(year == 2021) %>%
+                                left_join(safe1, by = c("raceId", "lap")) %>%
+                                  left_join(first, by = c("raceId", "lap")) %>%
+                                    filter(lapco == "norm") %>%
+                                      mutate(diff = milliseconds.x/fast-1) %>%
+                                        left_join(drivet, by = "driverId") %>% 
+                                        group_by(constructorId) %>%
+                                          summarise(meandel = mean(diff)) %>%
+                                            left_join(constructors, by = "constructorId")
+
+
+
+
+
+
+
+
+
+
+````
+
+
+```{r}
+
+
+maxlap <- laptimes %>% group_by(raceId) %>%
+                           slice( which.max(lap)) %>%
+                              select(raceId, lap)
+
+colnames(maxlap)[2] <- "totlap"
+
+
+allrace <- laptimes %>% left_join(races, by = "raceId") %>%
+                                left_join(drivers, by = "driverId") %>%
+                        left_join(pits, by = c("raceId", "lap", "driverId")) %>%
+                              left_join(maxlap, by = "raceId") %>%
+                              filter(year == 2021) %>%
+                                left_join(safe1, by = c("raceId", "lap")) %>%
+                                  left_join(first, by = c("raceId", "lap")) %>%
+                                    filter(lapco == "norm") %>%
+                  mutate(diff = milliseconds.x/fast-1, perrace = round(lap/totlap*100),0) %>%
+                                      
+                                        left_join(drivet, by = "driverId") %>% 
+                                        group_by(constructorId, perrace) %>%
+                                          summarise(meandel = mean(diff)) %>%
+                                            left_join(constructors, by = "constructorId")
+
+
+````
+
+
+
+```{r}
+
+
+
+
+ggplot(allrace, aes(x = perrace, y = meandel, col = name)) + geom_point()
+
+
+
+
+```
+
+
+
+```{r}
+
+
+mcl <- allrace %>% filter(name == "McLaren")
+
+
+
+
+ggplot(mcl, aes(x = perrace, y = meandel, col = name)) + geom_point()
+
+
+
+
+
+
+
+```
+
+```{r}
+
+
+
+
+
+lapcount <- results %>% group_by(raceId) %>%
+                            slice_max(laps) %>%
+                              distinct(laps, .keep_all = T) %>%
+                                select(raceId, laps)
+
+
+colnames(lapcount)[2] <- "tlap"
+
+
+```
+
+
+```{r}
+
+
+
+lando_gb <- laptimes %>% left_join(races, by = "raceId") %>%
+                                left_join(drivers, by = "driverId") %>%
+                        left_join(pits, by = c("raceId", "lap", "driverId")) %>%
+                            filter(name == "British Grand Prix") %>%
+                              filter(year > 2020) %>%
+                                filter(code %in% c("HAM")) %>%
+                                  mutate(seconds = milliseconds.x / 1000) %>%
+                                      group_by(year) %>%
+                                      fill(stop) %>%
+                                      mutate(stint = if_else(is.na(stop),1, 1 + stop)) %>%
+                                      mutate(lugdur = lag(duration)) %>%
+                                        mutate(stopfl = if_else(!is.na(duration),1 ,
+                                                          if_else(!is.na(lugdur), 1, 2))) %>%
+                                          filter(stopfl == 2) %>%
+                                              filter(seconds < 100) %>%
+                                                select(lap, seconds, year, stint)
+
+
+ggplot(lando_gb, aes(x = lap, y = seconds, col = as.factor(year))) + 
+                                        geom_point() +  geom_smooth(method = "lm", se = F) +
+                                          facet_wrap(~stint, scales = "free_x")
+
+
+
+```
+
+```{R}
+
+
+
+lando2 <- laptimes %>% left_join(races, by = "raceId") %>%
+                                left_join(drivers, by = "driverId") %>%
+                        left_join(pits, by = c("raceId", "lap", "driverId")) %>%
+                            filter(name == "Austrian Grand Prix") %>%
+                              filter(year > 2020) %>%
+                                filter(code %in% c("HAM")) %>%
+                                  mutate(seconds = milliseconds.x / 1000) %>%
+                                      group_by(year) %>%
+                                      fill(stop) %>%
+                                      mutate(stint = if_else(is.na(stop),1, 1 + stop)) %>%
+                                      mutate(lugdur = lag(duration)) %>%
+                                        mutate(stopfl = if_else(!is.na(duration),1 ,
+                                                          if_else(!is.na(lugdur), 1, 2))) %>%
+                                          filter(stopfl == 2) %>%
+                                              filter(seconds < 74) %>%
+                                              select(lap, seconds, year, stint)
+
+
+ggplot(lando2, aes(x = lap, y = seconds, col = as.factor(year))) + 
+                                        geom_point() +  geom_smooth(method = "lm", se = F) +
+                                          facet_wrap(~stint, scales = "free_x")
+
+
+
+
+
+
+
+
+
+```
+
+
+```{r}
+
+
+colnames(lando)[2] <- "Styria_lt"
+
+colnames(lando2)[2] <- "Austria_lt" 
+
+
+
+lan_com <- lando %>% left_join(lando2, by = "lap") %>%
+                        select(lap, Styria_lt, Austria_lt) %>%
+                            pivot_longer(cols = 2:3, names_to = "race", values_to = "lt")
+
+
+
+ggplot(lan_com, aes(x = lap, y = lt, col = race)) + geom_point()
+
+
+
+```
+
+```{r}
+
+
+
+
+lan_com2 <- lan_com %>% mutate(fuelds = (71-(lap+1)) * 0.06) %>%
+                            mutate(ltfuel = lt-fuelds)
+
+
+
+ggplot(lan_com2, aes(x = lap, y = ltfuel, col = race)) + 
+                                        geom_point()  
+
+````
+
+```{r}
+
+
+
+
+land3_2 <- lando_gb %>%    filter(lap > 4) %>%
+                        mutate(fuelds = (52-(lap+1)) * 0.06) %>%
+                            mutate(ltfuel = seconds-fuelds) %>%
+                         group_by(stint) %>%
+                          slice(which.min(lap))
+
+colnames(land3_2)[2] <- "minlt"
+colnames(land3_2)[6] <- "minflt"
+
+
+land3_3 <- lando_gb %>% left_join(land3_2, by = c("stint")) %>%
+                          mutate(fuelds = (52-(lap.x+1)) * 0.06) %>%
+                            mutate(ltfuel2 = seconds-fuelds) %>%
+                              mutate(delta = ltfuel2-minflt)
+
+
+
+land_cum <- land3_3 %>% group_by(stint) %>%
+                            mutate(closs = cumsum(delta), stinl = 1:n())
+
+
+ggplot(land_cum, aes(x = stinl, y = closs, col = as.factor(stint))) + geom_point(se = F)
+
+````
+
+
+
+
+
+
+
+```
 
 
