@@ -1,0 +1,73 @@
+---
+title: "PracRace"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+##packages 
+
+
+```{r}
+
+
+
+library(tidyverse)
+
+
+
+```
+
+## data
+
+
+```{r}
+
+
+
+circuits <- read_csv("circuits.csv")
+
+constures <- read_csv("constructor_results.csv")
+
+construcst <- read_csv("constructor_standings.csv")
+
+constructors <- read_csv("constructors.csv")
+
+dristan <- read_csv("driver_standings.csv")
+
+
+drivers <- read_csv("drivers.csv")
+
+
+laptimes <- read_csv("lap_times.csv")
+
+
+pits <- read_csv("pit_stops.csv")
+
+qual = read_csv("qualifying.csv")
+
+races <- read_csv("races.csv")
+
+results <- read_csv("results.csv")
+
+seasons <- read_csv("seasons.csv")
+
+status <- read_csv("status.csv")
+
+
+
+tyreuse <- read_csv("F1 Tyre Usage.csv")
+
+
+
+
+
+
+
+
+
+```
